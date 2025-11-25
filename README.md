@@ -2,7 +2,23 @@
 
 ## Mô tả
 
-Hệ thống CMS với MongoDB được xây dựng bằng NestJS, bao gồm quản lý users, settings và content.
+Hệ thống CMS với MongoDB được xây dựng bằng NestJS, bao gồm:
+
+- **Static Modules**: Quản lý users, settings và content
+- **Dynamic CMS**: Hệ thống CMS động cho phép tạo bảng, trường và API tại runtime
+
+## ⭐ Tính năng chính
+
+### 🎯 Dynamic CMS
+
+- **Tạo schema động**: Định nghĩa cấu trúc bảng qua API mà không cần code
+- **18 loại field**: text, number, email, select, reference, richtext, image, file...
+- **Validation động**: Tự động validate dữ liệu theo schema đã định nghĩa
+- **Auto CRUD API**: Tự động sinh API endpoints cho collection
+- **Soft Delete**: Xóa mềm với khả năng khôi phục
+- **Search & Filter**: Tìm kiếm và lọc dữ liệu linh hoạt
+
+👉 [Xem tài liệu chi tiết Dynamic CMS](./DYNAMIC_CMS.md)
 
 ## Cấu trúc dự án
 
@@ -11,40 +27,83 @@ src/
 ├── config/                 # Cấu hình ứng dụng
 │   └── database.config.ts
 ├── common/                 # Các thành phần dùng chung
-│   ├── dto/               # DTOs chung
+│   ├── dto/
 │   │   └── pagination.dto.ts
-│   └── interfaces/        # Interfaces chung
+│   └── interfaces/
 │       └── base.interface.ts
-├── modules/               # Các modules chính
+├── modules/
 │   ├── users/            # Module quản lý người dùng
-│   │   ├── schemas/
-│   │   │   └── user.schema.ts
-│   │   ├── dto/
-│   │   │   └── user.dto.ts
-│   │   ├── users.controller.ts
-│   │   ├── users.service.ts
-│   │   └── users.module.ts
 │   ├── settings/         # Module quản lý cài đặt
-│   │   ├── schemas/
-│   │   │   └── setting.schema.ts
-│   │   ├── dto/
-│   │   │   └── setting.dto.ts
-│   │   ├── settings.controller.ts
-│   │   ├── settings.service.ts
-│   │   └── settings.module.ts
-│   └── content/          # Module quản lý nội dung
+│   ├── content/          # Module quản lý nội dung
+│   └── dynamic-cms/      # 🆕 Dynamic CMS Module
+│       ├── interfaces/
+│       │   └── field-types.interface.ts
 │       ├── schemas/
-│       │   └── content.schema.ts
+│       │   ├── collection-schema.schema.ts
+│       │   └── dynamic-data.schema.ts
 │       ├── dto/
-│       │   └── content.dto.ts
-│       ├── content.controller.ts
-│       ├── content.service.ts
-│       └── content.module.ts
+│       │   ├── collection-schema.dto.ts
+│       │   └── dynamic-data.dto.ts
+│       ├── collection-schema.controller.ts
+│       ├── collection-schema.service.ts
+│       ├── dynamic-data.controller.ts
+│       ├── dynamic-data.service.ts
+│       └── dynamic-cms.module.ts
 ├── app.module.ts
 └── main.ts
+
+examples/                   # Ví dụ sử dụng
+├── collection-schemas.json # Schema mẫu
+└── seed-schemas.ts        # Script seed dữ liệu
 ```
 
 ## Tính năng
+
+### Dynamic CMS Module 🆕
+
+**Tạo collection động:**
+
+```bash
+POST /collection-schemas
+{
+  "name": "products",
+  "displayName": "Sản phẩm",
+  "fields": [
+    {
+      "name": "product_name",
+      "label": "Tên sản phẩm",
+      "type": "text",
+      "validation": { "required": true }
+    },
+    {
+      "name": "price",
+      "label": "Giá",
+      "type": "number",
+      "validation": { "required": true, "min": 0 }
+    }
+  ]
+}
+```
+
+**Thao tác dữ liệu:**
+
+```bash
+# Tạo sản phẩm
+POST /dynamic-data/products
+{
+  "product_name": "iPhone 15",
+  "price": 25000000
+}
+
+# Lấy danh sách
+GET /dynamic-data/products?page=1&limit=10
+
+# Cập nhật
+PATCH /dynamic-data/products/{id}
+
+# Xóa mềm
+DELETE /dynamic-data/products/{id}
+```
 
 ### Users Module
 
@@ -80,7 +139,7 @@ npm install
 
 2. Cấu hình môi trường trong file `.env`:
 
-```
+```env
 MONGODB_URI=mongodb://localhost:27017/cms-setting-auto
 PORT=3000
 ```
@@ -106,7 +165,33 @@ npm run build
 npm run start:prod
 ```
 
-## API Endpoints
+5. (Optional) Seed dữ liệu mẫu cho Dynamic CMS:
+
+```bash
+ts-node examples/seed-schemas.ts
+```
+
+## 📚 API Endpoints
+
+### 🔥 Dynamic CMS
+
+#### Collection Schema Management
+
+- `POST /collection-schemas` - Tạo collection schema mới
+- `GET /collection-schemas` - Lấy danh sách schemas (có phân trang)
+- `GET /collection-schemas/by-name/:name` - Lấy schema theo tên
+- `POST /collection-schemas/validate/:name` - Validate dữ liệu theo schema
+
+#### Dynamic Data Operations
+
+- `POST /dynamic-data/:collectionName` - Tạo document mới
+- `GET /dynamic-data/:collectionName` - Lấy danh sách documents
+- `GET /dynamic-data/:collectionName/:id` - Lấy document theo ID
+- `PATCH /dynamic-data/:collectionName/:id` - Cập nhật document
+- `DELETE /dynamic-data/:collectionName/:id` - Xóa mềm document
+- `DELETE /dynamic-data/:collectionName/:id/hard` - Xóa vĩnh viễn
+- `PATCH /dynamic-data/:collectionName/:id/restore` - Khôi phục document
+- `POST /dynamic-data/:collectionName/query` - Query tùy chỉnh
 
 ### Users
 
@@ -144,38 +229,32 @@ npm run start:prod
 ?page=1&limit=10&search=keyword
 ```
 
-## Technologies
+## 📖 Swagger Documentation
 
-- NestJS v11
-- MongoDB with Mongoose
-- TypeScript
-- class-validator & class-transformer
-- ConfigModule for environment variables
+Truy cập Swagger UI tại: `http://localhost:3000/api`
 
----
+## 🛠 Technologies
 
-## NestJS Documentation
+- **NestJS v11** - Progressive Node.js framework
+- **MongoDB** with Mongoose - NoSQL database
+- **TypeScript** - Type safety
+- **class-validator** & **class-transformer** - Validation & transformation
+- **@nestjs/swagger** - OpenAPI documentation
+- **@nestjs/config** - Environment configuration
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## 📂 Tài liệu chi tiết
 
-## Project setup
+- [DYNAMIC_CMS.md](./DYNAMIC_CMS.md) - Hướng dẫn chi tiết về Dynamic CMS
+- [examples/collection-schemas.json](./examples/collection-schemas.json) - Schema mẫu
+- [examples/seed-schemas.ts](./examples/seed-schemas.ts) - Script seed dữ liệu
 
-```bash
-$ npm install
-```
+## 🤝 Contributing
 
-## Compile and run the project
+Contributions, issues and feature requests are welcome!
 
-```bash
-# development
-$ npm run start
+## 📝 License
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
-```
+This project is MIT licensed.
 
 ## Run tests
 

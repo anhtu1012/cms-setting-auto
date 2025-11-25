@@ -6,6 +6,7 @@ import { AppService } from './app.service';
 import { UsersModule } from './modules/users/users.module';
 import { SettingsModule } from './modules/settings/settings.module';
 import { ContentModule } from './modules/content/content.module';
+import { DynamicCmsModule } from './modules/dynamic-cms/dynamic-cms.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -21,6 +22,7 @@ import databaseConfig from './config/database.config';
     UsersModule,
     SettingsModule,
     ContentModule,
+    DynamicCmsModule,
   ],
   controllers: [AppController],
   providers: [AppService],

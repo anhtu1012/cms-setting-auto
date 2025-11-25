@@ -1,0 +1,356 @@
+{
+  "collection_schemas": [
+    {
+      "name": "products",
+      "displayName": "Products",
+      "description": "Product catalog management",
+      "icon": "shopping-cart",
+      "fields": [
+        {
+          "name": "product_name",
+          "label": "Product Name",
+          "type": "text",
+          "validation": {
+            "required": true,
+            "minLength": 3,
+            "maxLength": 200
+          },
+          "placeholder": "Enter product name",
+          "showInList": true,
+          "searchable": true,
+          "sortable": true,
+          "order": 1
+        },
+        {
+          "name": "sku",
+          "label": "SKU",
+          "type": "text",
+          "validation": {
+            "required": true,
+            "pattern": "^[A-Z0-9-]+$"
+          },
+          "placeholder": "e.g. PROD-001",
+          "helpText": "Stock Keeping Unit",
+          "showInList": true,
+          "searchable": true,
+          "order": 2
+        },
+        {
+          "name": "price",
+          "label": "Price ($)",
+          "type": "number",
+          "validation": {
+            "required": true,
+            "min": 0
+          },
+          "showInList": true,
+          "sortable": true,
+          "order": 3
+        },
+        {
+          "name": "category",
+          "label": "Category",
+          "type": "select",
+          "validation": {
+            "required": true
+          },
+          "options": [
+            { "label": "Electronics", "value": "electronics" },
+            { "label": "Clothing", "value": "clothing" },
+            { "label": "Books", "value": "books" },
+            { "label": "Home & Garden", "value": "home_garden" }
+          ],
+          "showInList": true,
+          "searchable": true,
+          "order": 4
+        },
+        {
+          "name": "description",
+          "label": "Description",
+          "type": "rich_text",
+          "placeholder": "Product description",
+          "showInForm": true,
+          "showInList": false,
+          "order": 5
+        },
+        {
+          "name": "tags",
+          "label": "Tags",
+          "type": "multi_select",
+          "options": [
+            { "label": "New Arrival", "value": "new" },
+            { "label": "Best Seller", "value": "bestseller" },
+            { "label": "Sale", "value": "sale" },
+            { "label": "Featured", "value": "featured" }
+          ],
+          "showInList": false,
+          "order": 6
+        },
+        {
+          "name": "in_stock",
+          "label": "In Stock",
+          "type": "boolean",
+          "defaultValue": true,
+          "showInList": true,
+          "sortable": true,
+          "order": 7
+        },
+        {
+          "name": "stock_quantity",
+          "label": "Stock Quantity",
+          "type": "number",
+          "validation": {
+            "min": 0
+          },
+          "defaultValue": 0,
+          "showInList": true,
+          "order": 8
+        },
+        {
+          "name": "images",
+          "label": "Product Images",
+          "type": "array",
+          "helpText": "Upload product images",
+          "showInForm": true,
+          "order": 9
+        }
+      ],
+      "timestamps": true,
+      "softDelete": true,
+      "enableApi": true
+    },
+    {
+      "name": "blog_posts",
+      "displayName": "Blog Posts",
+      "description": "Blog content management",
+      "icon": "file-text",
+      "fields": [
+        {
+          "name": "title",
+          "label": "Title",
+          "type": "text",
+          "validation": {
+            "required": true,
+            "minLength": 5,
+            "maxLength": 200
+          },
+          "searchable": true,
+          "showInList": true,
+          "order": 1
+        },
+        {
+          "name": "slug",
+          "label": "URL Slug",
+          "type": "text",
+          "validation": {
+            "required": true,
+            "pattern": "^[a-z0-9-]+$"
+          },
+          "placeholder": "url-friendly-slug",
+          "helpText": "Lowercase letters, numbers and hyphens only",
+          "showInList": false,
+          "order": 2
+        },
+        {
+          "name": "excerpt",
+          "label": "Excerpt",
+          "type": "textarea",
+          "validation": {
+            "maxLength": 500
+          },
+          "placeholder": "Short summary",
+          "showInList": true,
+          "order": 3
+        },
+        {
+          "name": "content",
+          "label": "Content",
+          "type": "rich_text",
+          "validation": {
+            "required": true
+          },
+          "showInForm": true,
+          "order": 4
+        },
+        {
+          "name": "author",
+          "label": "Author",
+          "type": "reference",
+          "referenceConfig": {
+            "collection": "users",
+            "displayField": "firstName",
+            "multiple": false
+          },
+          "validation": {
+            "required": true
+          },
+          "showInList": true,
+          "order": 5
+        },
+        {
+          "name": "category",
+          "label": "Category",
+          "type": "select",
+          "options": [
+            { "label": "Technology", "value": "tech" },
+            { "label": "Design", "value": "design" },
+            { "label": "Business", "value": "business" },
+            { "label": "Lifestyle", "value": "lifestyle" }
+          ],
+          "showInList": true,
+          "order": 6
+        },
+        {
+          "name": "tags",
+          "label": "Tags",
+          "type": "multi_select",
+          "options": [
+            { "label": "Tutorial", "value": "tutorial" },
+            { "label": "News", "value": "news" },
+            { "label": "Guide", "value": "guide" },
+            { "label": "Review", "value": "review" }
+          ],
+          "order": 7
+        },
+        {
+          "name": "featured_image",
+          "label": "Featured Image",
+          "type": "image",
+          "helpText": "Main blog post image",
+          "showInList": true,
+          "order": 8
+        },
+        {
+          "name": "published",
+          "label": "Published",
+          "type": "boolean",
+          "defaultValue": false,
+          "showInList": true,
+          "sortable": true,
+          "order": 9
+        },
+        {
+          "name": "publish_date",
+          "label": "Publish Date",
+          "type": "datetime",
+          "showInList": true,
+          "sortable": true,
+          "order": 10
+        },
+        {
+          "name": "view_count",
+          "label": "View Count",
+          "type": "number",
+          "defaultValue": 0,
+          "showInList": true,
+          "sortable": true,
+          "order": 11
+        }
+      ],
+      "timestamps": true,
+      "softDelete": true,
+      "enableApi": true
+    },
+    {
+      "name": "contacts",
+      "displayName": "Contact Submissions",
+      "description": "Contact form submissions",
+      "icon": "mail",
+      "fields": [
+        {
+          "name": "name",
+          "label": "Name",
+          "type": "text",
+          "validation": {
+            "required": true,
+            "minLength": 2
+          },
+          "showInList": true,
+          "searchable": true,
+          "order": 1
+        },
+        {
+          "name": "email",
+          "label": "Email",
+          "type": "email",
+          "validation": {
+            "required": true
+          },
+          "showInList": true,
+          "searchable": true,
+          "order": 2
+        },
+        {
+          "name": "phone",
+          "label": "Phone",
+          "type": "text",
+          "validation": {
+            "pattern": "^[0-9+\\-\\s()]+$"
+          },
+          "showInList": true,
+          "order": 3
+        },
+        {
+          "name": "subject",
+          "label": "Subject",
+          "type": "text",
+          "validation": {
+            "required": true
+          },
+          "showInList": true,
+          "searchable": true,
+          "order": 4
+        },
+        {
+          "name": "message",
+          "label": "Message",
+          "type": "textarea",
+          "validation": {
+            "required": true,
+            "minLength": 10
+          },
+          "showInList": false,
+          "order": 5
+        },
+        {
+          "name": "status",
+          "label": "Status",
+          "type": "select",
+          "options": [
+            { "label": "New", "value": "new" },
+            { "label": "In Progress", "value": "in_progress" },
+            { "label": "Resolved", "value": "resolved" },
+            { "label": "Closed", "value": "closed" }
+          ],
+          "defaultValue": "new",
+          "showInList": true,
+          "order": 6
+        },
+        {
+          "name": "priority",
+          "label": "Priority",
+          "type": "radio",
+          "options": [
+            { "label": "Low", "value": "low" },
+            { "label": "Medium", "value": "medium" },
+            { "label": "High", "value": "high" }
+          ],
+          "defaultValue": "medium",
+          "showInList": true,
+          "order": 7
+        },
+        {
+          "name": "notes",
+          "label": "Internal Notes",
+          "type": "textarea",
+          "helpText": "For internal use only",
+          "showInList": false,
+          "order": 8
+        }
+      ],
+      "timestamps": true,
+      "softDelete": true,
+      "enableApi": true
+    }
+  ]
+}
