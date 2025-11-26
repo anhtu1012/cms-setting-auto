@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,16 +17,20 @@ import {
   ApiQuery,
   ApiParam,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
-import { CollectionSchemaService } from './collection-schema.service';
 import {
   CreateCollectionSchemaDto,
   UpdateCollectionSchemaDto,
-} from './dto/collection-schema.dto';
-import { PaginationDto } from '../../common/dto/pagination.dto';
+} from '../../dto/collection-schema.dto';
+import { PaginationDto } from '../../../../common/dto/pagination.dto';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { CollectionSchemaService } from './collection-schema.service';
 
 @ApiTags('collection-schemas')
 @Controller('collection-schemas')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class CollectionSchemaController {
   constructor(
     private readonly collectionSchemaService: CollectionSchemaService,
@@ -37,8 +43,8 @@ export class CollectionSchemaController {
     description: 'Collection schema created successfully',
   })
   @ApiResponse({ status: 400, description: 'Invalid input or duplicate name' })
-  create(@Body() createDto: CreateCollectionSchemaDto) {
-    return this.collectionSchemaService.create(createDto);
+  create(@Body() createDto: CreateCollectionSchemaDto, @Request() req) {
+    return this.collectionSchemaService.create(createDto, req.user.userId);
   }
 
   @Get()
@@ -46,33 +52,45 @@ export class CollectionSchemaController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'databaseId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Collection schemas retrieved' })
-  findAll(@Query() paginationDto: PaginationDto) {
-    return this.collectionSchemaService.findAll(paginationDto);
+  findAll(
+    @Query() paginationDto: PaginationDto,
+    @Query('databaseId') databaseId: string,
+    @Request() req,
+  ) {
+    return this.collectionSchemaService.findAll(
+      paginationDto,
+      req.user.userId,
+      databaseId,
+    );
   }
 
   @Get('all')
-  @ApiOperation({ summary: 'Get all collection schemas (no pagination)' })
-  @ApiResponse({ status: 200, description: 'All schemas retrieved' })
-  findAllSchemas() {
-    return this.collectionSchemaService.findAllSchemas();
-  }
-
-  @Get('by-name/:name')
-  @ApiOperation({ summary: 'Get collection schema by name' })
-  @ApiParam({ name: 'name', example: 'products' })
-  @ApiResponse({ status: 200, description: 'Schema found' })
-  @ApiResponse({ status: 404, description: 'Schema not found' })
-  findByName(@Param('name') name: string) {
-    return this.collectionSchemaService.findByName(name);
+  @ApiOperation({ summary: 'Get all collection schemas (paginated)' })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
+  @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({ name: 'databaseId', required: false, type: String })
+  @ApiResponse({ status: 200, description: 'Schemas retrieved (paginated)' })
+  findAllSchemas(
+    @Query() paginationDto: PaginationDto,
+    @Query('databaseId') databaseId: string,
+    @Request() req,
+  ) {
+    return this.collectionSchemaService.findAll(
+      paginationDto,
+      req.user.userId,
+      databaseId,
+    );
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get collection schema by ID' })
   @ApiResponse({ status: 200, description: 'Schema found' })
   @ApiResponse({ status: 404, description: 'Schema not found' })
-  findOne(@Param('id') id: string) {
-    return this.collectionSchemaService.findById(id);
+  findOne(@Param('id') id: string, @Request() req) {
+    return this.collectionSchemaService.findById(id, req.user.userId);
   }
 
   @Patch(':id')
@@ -82,16 +100,17 @@ export class CollectionSchemaController {
   update(
     @Param('id') id: string,
     @Body() updateDto: UpdateCollectionSchemaDto,
+    @Request() req,
   ) {
-    return this.collectionSchemaService.update(id, updateDto);
+    return this.collectionSchemaService.update(id, updateDto, req.user.userId);
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Delete collection schema' })
   @ApiResponse({ status: 200, description: 'Schema deleted successfully' })
   @ApiResponse({ status: 404, description: 'Schema not found' })
-  remove(@Param('id') id: string) {
-    return this.collectionSchemaService.remove(id);
+  remove(@Param('id') id: string, @Request() req) {
+    return this.collectionSchemaService.remove(id, req.user.userId);
   }
 
   @Post('validate/:collectionName')

@@ -6,6 +6,7 @@ import {
   ValidateNested,
   IsEnum,
   IsNumber,
+  IsNotEmpty,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
@@ -166,6 +167,14 @@ export class FieldDefinitionDto {
 }
 
 export class CreateCollectionSchemaDto {
+  @ApiProperty({
+    description: 'Database ID that this collection belongs to',
+    example: '507f1f77bcf86cd799439011',
+  })
+  @IsString()
+  @IsNotEmpty()
+  databaseId: string;
+
   @ApiProperty({
     description: 'Collection name (slug)',
     example: 'products',

@@ -5,20 +5,28 @@ import {
   CollectionSchemaSchema,
 } from './schemas/collection-schema.schema';
 import { DynamicData, DynamicDataSchema } from './schemas/dynamic-data.schema';
-import { CollectionSchemaService } from './collection-schema.service';
-import { CollectionSchemaController } from './collection-schema.controller';
-import { DynamicDataService } from './dynamic-data.service';
-import { DynamicDataController } from './dynamic-data.controller';
+import { Database, DatabaseSchema } from './schemas/database.schema';
+import { CollectionSchemaService } from './controller/collection-schema/collection-schema.service';
+import { CollectionSchemaController } from './controller/collection-schema/collection-schema.controller';
+import { DynamicDataService } from './controller/dynamic-data/dynamic-data.service';
+import { DynamicDataController } from './controller/dynamic-data/dynamic-data.controller';
+import { DatabaseService } from './controller/database/database.service';
+import { DatabaseController } from './controller/database/database.controller';
 
 @Module({
   imports: [
     MongooseModule.forFeature([
+      { name: Database.name, schema: DatabaseSchema },
       { name: CollectionSchemaModel.name, schema: CollectionSchemaSchema },
       { name: DynamicData.name, schema: DynamicDataSchema },
     ]),
   ],
-  controllers: [CollectionSchemaController, DynamicDataController],
-  providers: [CollectionSchemaService, DynamicDataService],
-  exports: [CollectionSchemaService, DynamicDataService],
+  controllers: [
+    DatabaseController,
+    CollectionSchemaController,
+    DynamicDataController,
+  ],
+  providers: [DatabaseService, CollectionSchemaService, DynamicDataService],
+  exports: [DatabaseService, CollectionSchemaService, DynamicDataService],
 })
 export class DynamicCmsModule {}

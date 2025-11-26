@@ -4,6 +4,8 @@ import {
   MinLength,
   IsOptional,
   IsEnum,
+  IsNumber,
+  IsNotEmpty,
 } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
@@ -14,6 +16,15 @@ export class CreateUserDto {
   })
   @IsEmail()
   email: string;
+
+  @ApiProperty({
+    example: 'johndoe',
+    description: 'Unique username',
+  })
+  @IsString()
+  @IsNotEmpty()
+  @MinLength(3)
+  userName: string;
 
   @ApiProperty({
     example: 'password123',
@@ -51,6 +62,12 @@ export class CreateUserDto {
 }
 
 export class UpdateUserDto {
+  @ApiPropertyOptional({ example: 'johndoe', description: 'Username' })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  userName?: string;
+
   @ApiPropertyOptional({ example: 'John', description: 'User first name' })
   @IsOptional()
   @IsString()
@@ -80,4 +97,14 @@ export class UpdateUserDto {
   @ApiPropertyOptional({ example: true, description: 'User active status' })
   @IsOptional()
   isActive?: boolean;
+
+  @ApiPropertyOptional({ example: 100, description: 'User points' })
+  @IsOptional()
+  @IsNumber()
+  points?: number;
+
+  @ApiPropertyOptional({ example: 500.5, description: 'Wallet balance' })
+  @IsOptional()
+  @IsNumber()
+  walletBalance?: number;
 }

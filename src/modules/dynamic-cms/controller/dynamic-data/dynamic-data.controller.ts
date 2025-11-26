@@ -7,6 +7,8 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -15,18 +17,23 @@ import {
   ApiQuery,
   ApiParam,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { PaginationDto } from '../../../../common/dto/pagination.dto';
 import { DynamicDataService } from './dynamic-data.service';
-import { PaginationDto } from '../../common/dto/pagination.dto';
 
 @ApiTags('dynamic-data')
 @Controller('dynamic-data/:collectionName')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class DynamicDataController {
   constructor(private readonly dynamicDataService: DynamicDataService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create new document in dynamic collection' })
   @ApiParam({ name: 'collectionName', example: 'products' })
+  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiBody({
     description: 'Document data to create',
     schema: {
@@ -47,23 +54,38 @@ export class DynamicDataController {
   @ApiResponse({ status: 404, description: 'Collection schema not found' })
   create(
     @Param('collectionName') collectionName: string,
+    @Query('databaseId') databaseId: string,
     @Body() data: Record<string, any>,
+    @Request() req,
   ) {
-    return this.dynamicDataService.create(collectionName, data);
+    return this.dynamicDataService.create(
+      collectionName,
+      databaseId,
+      data,
+      req.user.userId,
+    );
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all documents from dynamic collection' })
   @ApiParam({ name: 'collectionName', example: 'products' })
+  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Documents retrieved' })
   findAll(
     @Param('collectionName') collectionName: string,
+    @Query('databaseId') databaseId: string,
     @Query() paginationDto: PaginationDto,
+    @Request() req,
   ) {
-    return this.dynamicDataService.findAll(collectionName, paginationDto);
+    return this.dynamicDataService.findAll(
+      collectionName,
+      req.user.userId,
+      databaseId,
+      paginationDto,
+    );
   }
 
   @Post('query')
@@ -117,19 +139,28 @@ export class DynamicDataController {
   @ApiOperation({ summary: 'Get document by ID' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
+  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document found' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   findOne(
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
+    @Query('databaseId') databaseId: string,
+    @Request() req,
   ) {
-    return this.dynamicDataService.findById(collectionName, id);
+    return this.dynamicDataService.findById(
+      collectionName,
+      id,
+      req.user.userId,
+      databaseId,
+    );
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update document by ID' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
+  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiBody({
     description: 'Fields to update (partial update supported)',
     schema: {
@@ -146,47 +177,79 @@ export class DynamicDataController {
   update(
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
+    @Query('databaseId') databaseId: string,
     @Body() data: Record<string, any>,
+    @Request() req,
   ) {
-    return this.dynamicDataService.update(collectionName, id, data);
+    return this.dynamicDataService.update(
+      collectionName,
+      id,
+      databaseId,
+      data,
+      req.user.userId,
+    );
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Soft delete document by ID' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
+  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document deleted' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   softDelete(
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
+    @Query('databaseId') databaseId: string,
+    @Request() req,
   ) {
-    return this.dynamicDataService.softDelete(collectionName, id);
+    return this.dynamicDataService.softDelete(
+      collectionName,
+      id,
+      req.user.userId,
+      databaseId,
+    );
   }
 
   @Delete(':id/hard')
   @ApiOperation({ summary: 'Permanently delete document by ID' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
+  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document permanently deleted' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   hardDelete(
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
+    @Query('databaseId') databaseId: string,
+    @Request() req,
   ) {
-    return this.dynamicDataService.hardDelete(collectionName, id);
+    return this.dynamicDataService.hardDelete(
+      collectionName,
+      id,
+      req.user.userId,
+      databaseId,
+    );
   }
 
   @Post(':id/restore')
   @ApiOperation({ summary: 'Restore soft-deleted document' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
+  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document restored' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   restore(
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
+    @Query('databaseId') databaseId: string,
+    @Request() req,
   ) {
-    return this.dynamicDataService.restore(collectionName, id);
+    return this.dynamicDataService.restore(
+      collectionName,
+      id,
+      req.user.userId,
+      databaseId,
+    );
   }
 }

@@ -7,6 +7,7 @@ import {
   Param,
   Delete,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -14,13 +15,17 @@ import {
   ApiResponse,
   ApiQuery,
   ApiParam,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { SettingsService } from './settings.service';
 import { CreateSettingDto, UpdateSettingDto } from './dto/setting.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 
 @ApiTags('settings')
 @Controller('settings')
+@UseGuards(JwtAuthGuard)
+@ApiBearerAuth()
 export class SettingsController {
   constructor(private readonly settingsService: SettingsService) {}
 
