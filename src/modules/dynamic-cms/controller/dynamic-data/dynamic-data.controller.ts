@@ -4,10 +4,10 @@ import {
   Post,
   Body,
   Patch,
+  Put,
   Param,
   Delete,
   Query,
-  UseGuards,
   Request,
 } from '@nestjs/common';
 import {
@@ -17,23 +17,19 @@ import {
   ApiQuery,
   ApiParam,
   ApiBody,
-  ApiBearerAuth,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { PaginationDto } from '../../../../common/dto/pagination.dto';
 import { DynamicDataService } from './dynamic-data.service';
 
 @ApiTags('dynamic-data')
-@Controller('dynamic-data/:collectionName')
-@UseGuards(JwtAuthGuard)
-@ApiBearerAuth()
+@Controller(':databaseId/:collectionName')
 export class DynamicDataController {
   constructor(private readonly dynamicDataService: DynamicDataService) {}
 
   @Post()
   @ApiOperation({ summary: 'Create new document in dynamic collection' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
-  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiBody({
     description: 'Document data to create',
     schema: {
@@ -53,36 +49,38 @@ export class DynamicDataController {
   @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 404, description: 'Collection schema not found' })
   create(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
-    @Query('databaseId') databaseId: string,
     @Body() data: Record<string, any>,
     @Request() req,
   ) {
+    const userId = req?.user?.userId || null;
     return this.dynamicDataService.create(
       collectionName,
       databaseId,
       data,
-      req.user.userId,
+      userId,
     );
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all documents from dynamic collection' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
-  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Documents retrieved' })
   findAll(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
-    @Query('databaseId') databaseId: string,
     @Query() paginationDto: PaginationDto,
     @Request() req,
   ) {
+    const userId = req?.user?.userId || null;
     return this.dynamicDataService.findAll(
       collectionName,
-      req.user.userId,
+      userId,
       databaseId,
       paginationDto,
     );
@@ -90,6 +88,7 @@ export class DynamicDataController {
 
   @Post('query')
   @ApiOperation({ summary: 'Query documents with custom filter' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiBody({
     description: 'Query filter with optional sort, limit, skip',
@@ -111,6 +110,7 @@ export class DynamicDataController {
   })
   @ApiResponse({ status: 200, description: 'Query results returned' })
   query(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Body()
     body: {
@@ -129,38 +129,43 @@ export class DynamicDataController {
 
   @Get('count')
   @ApiOperation({ summary: 'Count documents in collection' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiResponse({ status: 200, description: 'Count returned' })
-  count(@Param('collectionName') collectionName: string) {
+  count(
+    @Param('databaseId') databaseId: string,
+    @Param('collectionName') collectionName: string,
+  ) {
     return this.dynamicDataService.count(collectionName);
   }
 
   @Get(':id')
   @ApiOperation({ summary: 'Get document by ID' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
-  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document found' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   findOne(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
-    @Query('databaseId') databaseId: string,
     @Request() req,
   ) {
+    const userId = req?.user?.userId || null;
     return this.dynamicDataService.findById(
       collectionName,
       id,
-      req.user.userId,
+      userId,
       databaseId,
     );
   }
 
   @Patch(':id')
   @ApiOperation({ summary: 'Update document by ID' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
-  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiBody({
     description: 'Fields to update (partial update supported)',
     schema: {
@@ -175,80 +180,124 @@ export class DynamicDataController {
   @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   update(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
-    @Query('databaseId') databaseId: string,
     @Body() data: Record<string, any>,
     @Request() req,
   ) {
+    const userId = req?.user?.userId || null;
     return this.dynamicDataService.update(
       collectionName,
       id,
       databaseId,
       data,
-      req.user.userId,
+      userId,
+    );
+  }
+
+  @Put(':id')
+  @ApiOperation({ summary: 'Replace document by ID (full replacement)' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({ name: 'collectionName', example: 'products' })
+  @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
+  @ApiBody({
+    description: 'Complete document data (replaces entire document)',
+    schema: {
+      type: 'object',
+      example: {
+        product_name: 'iPhone 15 Pro Max',
+        sku: 'IPHONE-15-PRO-MAX',
+        price: 1199.99,
+        category: 'electronics',
+        description: 'Latest iPhone model with larger screen',
+        tags: ['new', 'bestseller', 'premium'],
+        in_stock: true,
+      },
+    },
+  })
+  @ApiResponse({ status: 200, description: 'Document replaced' })
+  @ApiResponse({ status: 400, description: 'Validation failed' })
+  @ApiResponse({ status: 404, description: 'Document not found' })
+  replace(
+    @Param('databaseId') databaseId: string,
+    @Param('collectionName') collectionName: string,
+    @Param('id') id: string,
+    @Body() data: Record<string, any>,
+    @Request() req,
+  ) {
+    const userId = req?.user?.userId || null;
+    return this.dynamicDataService.replace(
+      collectionName,
+      id,
+      databaseId,
+      data,
+      userId,
     );
   }
 
   @Delete(':id')
   @ApiOperation({ summary: 'Soft delete document by ID' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
-  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document deleted' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   softDelete(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
-    @Query('databaseId') databaseId: string,
     @Request() req,
   ) {
+    const userId = req?.user?.userId || null;
     return this.dynamicDataService.softDelete(
       collectionName,
       id,
-      req.user.userId,
+      userId,
       databaseId,
     );
   }
 
   @Delete(':id/hard')
   @ApiOperation({ summary: 'Permanently delete document by ID' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
-  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document permanently deleted' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   hardDelete(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
-    @Query('databaseId') databaseId: string,
     @Request() req,
   ) {
+    const userId = req?.user?.userId || null;
     return this.dynamicDataService.hardDelete(
       collectionName,
       id,
-      req.user.userId,
+      userId,
       databaseId,
     );
   }
 
   @Post(':id/restore')
   @ApiOperation({ summary: 'Restore soft-deleted document' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
-  @ApiQuery({ name: 'databaseId', required: true, type: String })
   @ApiResponse({ status: 200, description: 'Document restored' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   restore(
+    @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
-    @Query('databaseId') databaseId: string,
     @Request() req,
   ) {
+    const userId = req?.user?.userId || null;
     return this.dynamicDataService.restore(
       collectionName,
       id,
-      req.user.userId,
+      userId,
       databaseId,
     );
   }

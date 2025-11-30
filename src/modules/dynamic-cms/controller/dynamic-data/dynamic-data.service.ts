@@ -25,18 +25,39 @@ export class DynamicDataService {
   ) {}
 
   /**
+   * Transform document để trả về data phẳng, không có lớp _data
+   */
+  private transformDocument(doc: any): any {
+    if (!doc) return null;
+
+    const plainDoc = doc.toObject ? doc.toObject() : doc;
+    const { _data, ...rest } = plainDoc;
+
+    return {
+      ...rest,
+      ..._data, // Flatten _data vào root level
+    };
+  }
+
+  /**
+   * Transform array of documents
+   */
+  private transformDocuments(docs: any[]): any[] {
+    return docs.map((doc) => this.transformDocument(doc));
+  }
+
+  /**
    * Tạo document mới trong collection động
    */
   async create(
     collectionName: string,
     databaseId: string,
     data: Record<string, any>,
-    userId: string,
+    userId: string | null,
   ): Promise<DynamicData> {
-    // Kiểm tra collection schema có tồn tại không và kiểm tra ownership
-    const schema = await this.collectionSchemaService.findByName(
+    // Kiểm tra collection schema có tồn tại không (không check ownership)
+    const schema = await this.collectionSchemaService.findByNamePublic(
       collectionName,
-      userId,
       databaseId,
     );
 
@@ -46,31 +67,31 @@ export class DynamicDataService {
       );
     }
 
-    // TODO: Validate dữ liệu
-    // const validation = await this.collectionSchemaService.validateData(
-    //   collectionName,
-    //   userId,
-    //   databaseId,
-    //   data,
-    // );
-    // if (!validation.valid) {
-    //   throw new BadRequestException({
-    //     message: 'Validation failed',
-    //     errors: validation.errors,
-    //   });
-    // }
+    // Validate dữ liệu (public - không check ownership)
+    const validation = await this.collectionSchemaService.validateDataPublic(
+      collectionName,
+      databaseId,
+      data,
+    );
+    if (!validation.valid) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: validation.errors,
+      });
+    }
 
     // Tạo document
     const document = new this.dynamicDataModel({
       _collection: collectionName,
-      userId: new Types.ObjectId(userId),
+      userId: userId ? new Types.ObjectId(userId) : null,
       databaseId: new Types.ObjectId(databaseId),
       _data: data,
       createdBy: userId,
       updatedBy: userId,
     });
 
-    return document.save();
+    const saved = await document.save();
+    return this.transformDocument(saved);
   }
 
   /**
@@ -78,7 +99,7 @@ export class DynamicDataService {
    */
   async findAll(
     collectionName: string,
-    userId: string,
+    userId: string | null,
     databaseId: string,
     paginationDto: PaginationDto,
     filter?: Record<string, any>,
@@ -86,10 +107,9 @@ export class DynamicDataService {
     const { page = 1, limit = 10, search } = paginationDto;
     const skip = (page - 1) * limit;
 
-    // Kiểm tra collection schema và ownership
-    const schema = await this.collectionSchemaService.findByName(
+    // Kiểm tra collection schema (không check ownership)
+    const schema = await this.collectionSchemaService.findByNamePublic(
       collectionName,
-      userId,
       databaseId,
     );
 
@@ -102,10 +122,14 @@ export class DynamicDataService {
     // Build query
     const query: FilterQuery<DynamicDataDocument> = {
       _collection: collectionName,
-      userId: new Types.ObjectId(userId),
       databaseId: new Types.ObjectId(databaseId),
       deletedAt: null, // Không lấy các bản ghi đã xóa
     };
+
+    // Chỉ thêm userId filter nếu có
+    if (userId) {
+      query.userId = new Types.ObjectId(userId);
+    }
 
     // Thêm filter nếu có
     if (filter) {
@@ -138,7 +162,7 @@ export class DynamicDataService {
     ]);
 
     return {
-      data,
+      data: this.transformDocuments(data),
       total,
       page,
       limit,
@@ -152,18 +176,21 @@ export class DynamicDataService {
   async findById(
     collectionName: string,
     id: string,
-    userId: string,
+    userId: string | null,
     databaseId: string,
   ): Promise<DynamicData | null> {
-    const document = await this.dynamicDataModel
-      .findOne({
-        _id: id,
-        _collection: collectionName,
-        userId: new Types.ObjectId(userId),
-        databaseId: new Types.ObjectId(databaseId),
-        deletedAt: null,
-      })
-      .exec();
+    const query: any = {
+      _id: id,
+      _collection: collectionName,
+      databaseId: new Types.ObjectId(databaseId),
+      deletedAt: null,
+    };
+
+    if (userId) {
+      query.userId = new Types.ObjectId(userId);
+    }
+
+    const document = await this.dynamicDataModel.findOne(query).exec();
 
     if (!document) {
       throw new NotFoundException(
@@ -171,7 +198,7 @@ export class DynamicDataService {
       );
     }
 
-    return document;
+    return this.transformDocument(document);
   }
 
   /**
@@ -182,15 +209,22 @@ export class DynamicDataService {
     id: string,
     databaseId: string,
     data: Record<string, any>,
-    userId: string,
+    userId: string | null,
   ): Promise<DynamicData | null> {
     // Kiểm tra document có tồn tại không và kiểm tra ownership
-    const existing = await this.findById(
-      collectionName,
-      id,
-      userId,
-      databaseId,
-    );
+    const query: any = {
+      _id: id,
+      _collection: collectionName,
+      databaseId: new Types.ObjectId(databaseId),
+      deletedAt: null,
+    };
+
+    if (userId) {
+      query.userId = new Types.ObjectId(userId);
+    }
+
+    const existing = await this.dynamicDataModel.findOne(query).exec();
+
     if (!existing) {
       throw new NotFoundException(
         `Document not found in collection "${collectionName}"`,
@@ -200,22 +234,21 @@ export class DynamicDataService {
     // Merge data cũ với data mới
     const mergedData = { ...existing._data, ...data };
 
-    // TODO: Validate dữ liệu mới
-    // const validation = await this.collectionSchemaService.validateData(
-    //   collectionName,
-    //   userId,
-    //   databaseId,
-    //   mergedData,
-    // );
-    // if (!validation.valid) {
-    //   throw new BadRequestException({
-    //     message: 'Validation failed',
-    //     errors: validation.errors,
-    //   });
-    // }
+    // Validate dữ liệu mới (public)
+    const validation = await this.collectionSchemaService.validateDataPublic(
+      collectionName,
+      databaseId,
+      mergedData,
+    );
+    if (!validation.valid) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: validation.errors,
+      });
+    }
 
     // Cập nhật
-    return this.dynamicDataModel
+    const updated = await this.dynamicDataModel
       .findByIdAndUpdate(
         id,
         {
@@ -225,6 +258,66 @@ export class DynamicDataService {
         { new: true },
       )
       .exec();
+
+    return this.transformDocument(updated);
+  }
+
+  /**
+   * Thay thế hoàn toàn document (PUT)
+   */
+  async replace(
+    collectionName: string,
+    id: string,
+    databaseId: string,
+    data: Record<string, any>,
+    userId: string | null,
+  ): Promise<any> {
+    // Kiểm tra document có tồn tại không và kiểm tra ownership
+    const query: any = {
+      _id: id,
+      _collection: collectionName,
+      databaseId: new Types.ObjectId(databaseId),
+      deletedAt: null,
+    };
+
+    if (userId) {
+      query.userId = new Types.ObjectId(userId);
+    }
+
+    const existing = await this.dynamicDataModel.findOne(query).exec();
+
+    if (!existing) {
+      throw new NotFoundException(
+        `Document not found in collection "${collectionName}"`,
+      );
+    }
+
+    // Validate dữ liệu mới (không merge, thay thế hoàn toàn) - public
+    const validation = await this.collectionSchemaService.validateDataPublic(
+      collectionName,
+      databaseId,
+      data,
+    );
+    if (!validation.valid) {
+      throw new BadRequestException({
+        message: 'Validation failed',
+        errors: validation.errors,
+      });
+    }
+
+    // Thay thế hoàn toàn
+    const replaced = await this.dynamicDataModel
+      .findByIdAndUpdate(
+        id,
+        {
+          _data: data, // Thay thế hoàn toàn, không merge
+          updatedBy: userId,
+        },
+        { new: true },
+      )
+      .exec();
+
+    return this.transformDocument(replaced);
   }
 
   /**
@@ -233,7 +326,7 @@ export class DynamicDataService {
   async softDelete(
     collectionName: string,
     id: string,
-    userId: string,
+    userId: string | null,
     databaseId: string,
   ): Promise<DynamicData | null> {
     const document = await this.findById(
@@ -248,9 +341,11 @@ export class DynamicDataService {
       );
     }
 
-    return this.dynamicDataModel
+    const deleted = await this.dynamicDataModel
       .findByIdAndUpdate(id, { deletedAt: new Date() }, { new: true })
       .exec();
+
+    return this.transformDocument(deleted);
   }
 
   /**
@@ -259,17 +354,20 @@ export class DynamicDataService {
   async hardDelete(
     collectionName: string,
     id: string,
-    userId: string,
+    userId: string | null,
     databaseId: string,
   ): Promise<DynamicData | null> {
-    const document = await this.dynamicDataModel
-      .findOne({
-        _id: id,
-        _collection: collectionName,
-        userId: new Types.ObjectId(userId),
-        databaseId: new Types.ObjectId(databaseId),
-      })
-      .exec();
+    const query: any = {
+      _id: id,
+      _collection: collectionName,
+      databaseId: new Types.ObjectId(databaseId),
+    };
+
+    if (userId) {
+      query.userId = new Types.ObjectId(userId);
+    }
+
+    const document = await this.dynamicDataModel.findOne(query).exec();
 
     if (!document) {
       throw new NotFoundException(
@@ -277,7 +375,8 @@ export class DynamicDataService {
       );
     }
 
-    return this.dynamicDataModel.findByIdAndDelete(id).exec();
+    const deleted = await this.dynamicDataModel.findByIdAndDelete(id).exec();
+    return this.transformDocument(deleted);
   }
 
   /**
@@ -286,17 +385,20 @@ export class DynamicDataService {
   async restore(
     collectionName: string,
     id: string,
-    userId: string,
+    userId: string | null,
     databaseId: string,
   ): Promise<DynamicData | null> {
-    const document = await this.dynamicDataModel
-      .findOne({
-        _id: id,
-        _collection: collectionName,
-        userId: new Types.ObjectId(userId),
-        databaseId: new Types.ObjectId(databaseId),
-      })
-      .exec();
+    const query: any = {
+      _id: id,
+      _collection: collectionName,
+      databaseId: new Types.ObjectId(databaseId),
+    };
+
+    if (userId) {
+      query.userId = new Types.ObjectId(userId);
+    }
+
+    const document = await this.dynamicDataModel.findOne(query).exec();
 
     if (!document) {
       throw new NotFoundException(
@@ -304,9 +406,11 @@ export class DynamicDataService {
       );
     }
 
-    return this.dynamicDataModel
+    const restored = await this.dynamicDataModel
       .findByIdAndUpdate(id, { deletedAt: null }, { new: true })
       .exec();
+
+    return this.transformDocument(restored);
   }
 
   /**
@@ -345,7 +449,8 @@ export class DynamicDataService {
       queryBuilder = queryBuilder.limit(options.limit);
     }
 
-    return queryBuilder.exec();
+    const results = await queryBuilder.exec();
+    return this.transformDocuments(results);
   }
 
   /**

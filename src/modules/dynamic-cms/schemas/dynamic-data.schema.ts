@@ -10,8 +10,8 @@ export type DynamicDataDocument = DynamicData & Document;
  */
 @Schema({ timestamps: true, collection: 'dynamic_data' })
 export class DynamicData {
-  @Prop({ type: Types.ObjectId, ref: 'User', required: true, index: true })
-  userId: Types.ObjectId; // User sở hữu data này
+  @Prop({ type: Types.ObjectId, ref: 'User', required: false, index: true })
+  userId?: Types.ObjectId; // User sở hữu data này (optional cho public API)
 
   @Prop({ type: Types.ObjectId, ref: 'Database', required: true, index: true })
   databaseId: Types.ObjectId; // Database chứa data này

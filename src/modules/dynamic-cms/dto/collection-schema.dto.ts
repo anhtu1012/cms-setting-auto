@@ -85,13 +85,14 @@ export class FieldDefinitionDto {
   @IsString()
   name: string;
 
-  @ApiProperty({ description: 'Field display label', example: 'Product Name' })
-  @IsString()
-  label: string;
-
   @ApiProperty({ enum: FieldType, description: 'Field type' })
   @IsEnum(FieldType)
   type: FieldType;
+
+  @ApiProperty({ description: 'Field display label', example: 'Product Name' })
+  @IsOptional()
+  @IsString()
+  label: string;
 
   @ApiPropertyOptional({ description: 'Field description' })
   @IsOptional()

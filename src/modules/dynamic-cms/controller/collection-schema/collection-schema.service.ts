@@ -18,6 +18,13 @@ import {
   PaginationDto,
   PaginationResponse,
 } from '../../../../common/dto/pagination.dto';
+import { FieldType } from '../../interfaces/field-types.interface';
+import {
+  ValidationResponse,
+  ValidationError,
+  createValidationError,
+  createValidationResponse,
+} from '../../../../common/dto/validation.dto';
 
 @Injectable()
 export class CollectionSchemaService {
@@ -133,7 +140,7 @@ export class CollectionSchemaService {
   }
 
   /**
-   * Lấy collection schema theo name trong database của user
+   * Lấy collection schema theo name trong database của user (có check ownership)
    */
   async findByName(
     name: string,
@@ -144,6 +151,22 @@ export class CollectionSchemaService {
       .findOne({
         name,
         userId: new Types.ObjectId(userId),
+        databaseId: new Types.ObjectId(databaseId),
+      })
+      .exec();
+  }
+
+  /**
+   * Lấy collection schema theo name trong database (không check ownership)
+   * Dùng cho public API - chỉ cần databaseId
+   */
+  async findByNamePublic(
+    name: string,
+    databaseId: string,
+  ): Promise<CollectionSchemaModel | null> {
+    return this.collectionSchemaModel
+      .findOne({
+        name,
         databaseId: new Types.ObjectId(databaseId),
       })
       .exec();
@@ -242,14 +265,308 @@ export class CollectionSchemaService {
 
   /**
    * Validate dữ liệu theo schema
-   * TODO: Cập nhật lại method này với userId và databaseId
    */
   async validateData(
     collectionName: string,
+    userId: string | null,
+    databaseId: string,
     data: Record<string, any>,
-  ): Promise<{ valid: boolean; errors: string[] }> {
-    // Tạm thời return valid để không block
-    // TODO: Implement validation với userId và databaseId
-    return { valid: true, errors: [] };
+  ): Promise<ValidationResponse> {
+    const errors: ValidationError[] = [];
+
+    // Lấy schema
+    const schema = await this.findByName(collectionName, userId, databaseId);
+    if (!schema) {
+      throw new NotFoundException(
+        `Collection schema "${collectionName}" not found`,
+      );
+    }
+
+    // Danh sách các field tự động của hệ thống - không cần validate
+    const systemFields = ['id', '_id', 'createdAt', 'updatedAt', '__v'];
+
+    // Validate từng field
+    for (const field of schema.fields) {
+      // Bỏ qua các field hệ thống
+      if (systemFields.includes(field.name)) {
+        continue;
+      }
+
+      const value = data[field.name];
+      const validation = field.validation || {};
+
+      // Check required
+      if (
+        validation.required &&
+        (value === undefined || value === null || value === '')
+      ) {
+        errors.push(
+          createValidationError(
+            field.name,
+            `${field.label || field.name} is required`,
+          ),
+        );
+        continue;
+      }
+
+      // Nếu không có value và không required thì skip validation type
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      // Validate type
+      const actualType = typeof value;
+      let isValidType = false;
+
+      switch (field.type) {
+        case FieldType.STRING:
+        case FieldType.TEXT:
+        case FieldType.TEXTAREA:
+        case FieldType.EMAIL:
+        case FieldType.URL:
+        case FieldType.RICH_TEXT:
+          isValidType = actualType === 'string';
+          break;
+        case FieldType.NUMBER:
+          isValidType = actualType === 'number' && !isNaN(value);
+          break;
+        case FieldType.BOOLEAN:
+        case FieldType.CHECKBOX:
+          isValidType = actualType === 'boolean';
+          break;
+        case FieldType.DATE:
+        case FieldType.DATETIME:
+          isValidType = !isNaN(Date.parse(value));
+          break;
+        case FieldType.ARRAY:
+        case FieldType.MULTI_SELECT:
+          isValidType = Array.isArray(value);
+          break;
+        case FieldType.JSON:
+          isValidType = actualType === 'object' && !Array.isArray(value);
+          break;
+        case FieldType.REFERENCE:
+          // Reference có thể là ObjectId hoặc string
+          isValidType =
+            actualType === 'string' || Types.ObjectId.isValid(value);
+          break;
+        case FieldType.SELECT:
+        case FieldType.RADIO:
+          isValidType = actualType === 'string' || actualType === 'number';
+          break;
+        case FieldType.FILE:
+        case FieldType.IMAGE:
+          isValidType = actualType === 'string'; // URL string
+          break;
+        default:
+          isValidType = true; // Unknown types pass
+      }
+
+      if (!isValidType) {
+        errors.push(
+          createValidationError(
+            field.name,
+            `${field.label || field.name} must be of type ${field.type}, got ${actualType}`,
+          ),
+        );
+      }
+
+      // Validate enum
+      if (validation.enum && validation.enum.length > 0) {
+        if (!validation.enum.includes(value)) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be one of: ${validation.enum.join(', ')}`,
+            ),
+          );
+        }
+      }
+
+      // Validate min/max for numbers
+      if (field.type === FieldType.NUMBER && typeof value === 'number') {
+        if (validation.min !== undefined && value < validation.min) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at least ${validation.min}`,
+            ),
+          );
+        }
+        if (validation.max !== undefined && value > validation.max) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at most ${validation.max}`,
+            ),
+          );
+        }
+      }
+
+      // Validate minLength/maxLength for strings
+      if (
+        (field.type === FieldType.STRING ||
+          field.type === FieldType.TEXT ||
+          field.type === FieldType.TEXTAREA) &&
+        typeof value === 'string'
+      ) {
+        if (
+          validation.minLength !== undefined &&
+          value.length < validation.minLength
+        ) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at least ${validation.minLength} characters`,
+            ),
+          );
+        }
+        if (
+          validation.maxLength !== undefined &&
+          value.length > validation.maxLength
+        ) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at most ${validation.maxLength} characters`,
+            ),
+          );
+        }
+      }
+
+      // Validate pattern (regex)
+      if (validation.pattern && typeof value === 'string') {
+        const regex = new RegExp(validation.pattern);
+        if (!regex.test(value)) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} does not match the required pattern`,
+            ),
+          );
+        }
+      }
+
+      // TODO: Validate unique
+      // Cần inject DynamicDataModel để check uniqueness trong database
+    }
+
+    return createValidationResponse(errors);
+  }
+
+  /**
+   * Validate dữ liệu theo schema (public - không check ownership)
+   * Dùng cho dynamic-data public API
+   */
+  async validateDataPublic(
+    collectionName: string,
+    databaseId: string,
+    data: Record<string, any>,
+  ): Promise<ValidationResponse> {
+    const errors: ValidationError[] = [];
+
+    // Lấy schema (không check ownership)
+    const schema = await this.findByNamePublic(collectionName, databaseId);
+    if (!schema) {
+      throw new NotFoundException(
+        `Collection schema "${collectionName}" not found`,
+      );
+    }
+
+    // Danh sách các field tự động của hệ thống - không cần validate
+    const systemFields = ['id', '_id', 'createdAt', 'updatedAt', '__v'];
+
+    // Validate từng field
+    for (const field of schema.fields) {
+      // Bỏ qua các field hệ thống
+      if (systemFields.includes(field.name)) {
+        continue;
+      }
+
+      const value = data[field.name];
+      const validation = field.validation || {};
+
+      // Check required
+      if (validation.required && (value === undefined || value === null || value === '')) {
+        errors.push(
+          createValidationError(
+            field.name,
+            `${field.label || field.name} is required`,
+          ),
+        );
+        continue; // Bỏ qua các validation khác nếu required fail
+      }
+
+      // Nếu value không có và không required thì skip validation
+      if (value === undefined || value === null) {
+        continue;
+      }
+
+      // Validate min/max for numbers
+      if (field.type === FieldType.NUMBER && typeof value === 'number') {
+        if (validation.min !== undefined && value < validation.min) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at least ${validation.min}`,
+            ),
+          );
+        }
+        if (validation.max !== undefined && value > validation.max) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at most ${validation.max}`,
+            ),
+          );
+        }
+      }
+
+      // Validate minLength/maxLength for strings
+      if (
+        (field.type === FieldType.STRING ||
+          field.type === FieldType.TEXT ||
+          field.type === FieldType.TEXTAREA) &&
+        typeof value === 'string'
+      ) {
+        if (
+          validation.minLength !== undefined &&
+          value.length < validation.minLength
+        ) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at least ${validation.minLength} characters`,
+            ),
+          );
+        }
+        if (
+          validation.maxLength !== undefined &&
+          value.length > validation.maxLength
+        ) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} must be at most ${validation.maxLength} characters`,
+            ),
+          );
+        }
+      }
+
+      // Validate pattern (regex)
+      if (validation.pattern && typeof value === 'string') {
+        const regex = new RegExp(validation.pattern);
+        if (!regex.test(value)) {
+          errors.push(
+            createValidationError(
+              field.name,
+              `${field.label || field.name} does not match the required pattern`,
+            ),
+          );
+        }
+      }
+    }
+
+    return createValidationResponse(errors);
   }
 }

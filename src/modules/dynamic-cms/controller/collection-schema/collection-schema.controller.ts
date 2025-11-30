@@ -9,6 +9,7 @@ import {
   Query,
   UseGuards,
   Request,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,6 +19,7 @@ import {
   ApiParam,
   ApiBody,
   ApiBearerAuth,
+  ApiHeader,
 } from '@nestjs/swagger';
 import {
   CreateCollectionSchemaDto,
@@ -25,12 +27,20 @@ import {
 } from '../../dto/collection-schema.dto';
 import { PaginationDto } from '../../../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { DatabaseOwnershipGuard } from '../../../../common/guards/database-ownership.guard';
+import { DatabaseId } from '../../../../common/decorators/database-id.decorator';
 import { CollectionSchemaService } from './collection-schema.service';
 
 @ApiTags('collection-schemas')
 @Controller('collection-schemas')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, DatabaseOwnershipGuard)
 @ApiBearerAuth()
+@ApiHeader({
+  name: 'x-database-id',
+  description: 'Database ID that user has access to',
+  required: true,
+  schema: { type: 'string', example: '507f1f77bcf86cd799439011' },
+})
 export class CollectionSchemaController {
   constructor(
     private readonly collectionSchemaService: CollectionSchemaService,
@@ -43,8 +53,14 @@ export class CollectionSchemaController {
     description: 'Collection schema created successfully',
   })
   @ApiResponse({ status: 400, description: 'Invalid input or duplicate name' })
-  create(@Body() createDto: CreateCollectionSchemaDto, @Request() req) {
-    return this.collectionSchemaService.create(createDto, req.user.userId);
+  create(
+    @Body() createDto: CreateCollectionSchemaDto,
+    @DatabaseId() databaseId: string,
+    @Request() req,
+  ) {
+    // Override databaseId from header instead of body
+    const dto = { ...createDto, databaseId };
+    return this.collectionSchemaService.create(dto, req.user.userId);
   }
 
   @Get()
@@ -52,11 +68,10 @@ export class CollectionSchemaController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'databaseId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Collection schemas retrieved' })
   findAll(
     @Query() paginationDto: PaginationDto,
-    @Query('databaseId') databaseId: string,
+    @DatabaseId() databaseId: string,
     @Request() req,
   ) {
     return this.collectionSchemaService.findAll(
@@ -71,11 +86,10 @@ export class CollectionSchemaController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String })
-  @ApiQuery({ name: 'databaseId', required: false, type: String })
   @ApiResponse({ status: 200, description: 'Schemas retrieved (paginated)' })
   findAllSchemas(
     @Query() paginationDto: PaginationDto,
-    @Query('databaseId') databaseId: string,
+    @DatabaseId() databaseId: string,
     @Request() req,
   ) {
     return this.collectionSchemaService.findAll(
@@ -83,6 +97,35 @@ export class CollectionSchemaController {
       req.user.userId,
       databaseId,
     );
+  }
+
+  @Get('by-name/:name')
+  @ApiOperation({ summary: 'Get collection schema by name' })
+  @ApiParam({
+    name: 'name',
+    example: 'products',
+    description: 'Collection name',
+  })
+  @ApiResponse({ status: 200, description: 'Schema found' })
+  @ApiResponse({ status: 404, description: 'Schema not found' })
+  async findByName(
+    @Param('name') name: string,
+    @DatabaseId() databaseId: string,
+    @Request() req,
+  ) {
+    const schema = await this.collectionSchemaService.findByName(
+      name,
+      req.user.userId,
+      databaseId,
+    );
+
+    if (!schema) {
+      throw new NotFoundException(
+        `Collection schema with name "${name}" not found`,
+      );
+    }
+
+    return schema;
   }
 
   @Get(':id')
@@ -146,8 +189,15 @@ export class CollectionSchemaController {
   })
   validateData(
     @Param('collectionName') collectionName: string,
+    @DatabaseId() databaseId: string,
     @Body() data: Record<string, any>,
+    @Request() req,
   ) {
-    return this.collectionSchemaService.validateData(collectionName, data);
+    return this.collectionSchemaService.validateData(
+      collectionName,
+      req.user.userId,
+      databaseId,
+      data,
+    );
   }
 }

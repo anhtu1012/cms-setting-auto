@@ -12,6 +12,7 @@ import { DynamicDataService } from './controller/dynamic-data/dynamic-data.servi
 import { DynamicDataController } from './controller/dynamic-data/dynamic-data.controller';
 import { DatabaseService } from './controller/database/database.service';
 import { DatabaseController } from './controller/database/database.controller';
+import { DatabaseOwnershipGuard } from '../../common/guards/database-ownership.guard';
 
 @Module({
   imports: [
@@ -26,7 +27,17 @@ import { DatabaseController } from './controller/database/database.controller';
     CollectionSchemaController,
     DynamicDataController,
   ],
-  providers: [DatabaseService, CollectionSchemaService, DynamicDataService],
-  exports: [DatabaseService, CollectionSchemaService, DynamicDataService],
+  providers: [
+    DatabaseService,
+    CollectionSchemaService,
+    DynamicDataService,
+    DatabaseOwnershipGuard,
+  ],
+  exports: [
+    DatabaseService,
+    CollectionSchemaService,
+    DynamicDataService,
+    MongooseModule, // Export để guards có thể inject models
+  ],
 })
 export class DynamicCmsModule {}
