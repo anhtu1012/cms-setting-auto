@@ -487,7 +487,10 @@ export class CollectionSchemaService {
       const validation = field.validation || {};
 
       // Check required
-      if (validation.required && (value === undefined || value === null || value === '')) {
+      if (
+        validation.required &&
+        (value === undefined || value === null || value === '')
+      ) {
         errors.push(
           createValidationError(
             field.name,
