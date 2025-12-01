@@ -3,7 +3,7 @@ services:
     name: cms-setting-auto
     env: node
     plan: free
-    buildCommand: npm install --production
+    buildCommand: npm install; npm run build
     startCommand: npm run start:prod
     envVars:
       - key: NODE_VERSION
