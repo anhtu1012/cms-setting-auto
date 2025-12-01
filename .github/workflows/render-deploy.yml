@@ -26,4 +26,10 @@ jobs:
 
       - name: Trigger Render Deployment
         if: success()
-        run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+        run: |
+          if [ -z "${{ secrets.RENDER_DEPLOY_HOOK }}" ]; then
+            echo "❌ Error: RENDER_DEPLOY_HOOK secret is not set!"
+            echo "👉 Please go to GitHub Settings > Secrets > Actions and add RENDER_DEPLOY_HOOK."
+            exit 1
+          fi
+          curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
