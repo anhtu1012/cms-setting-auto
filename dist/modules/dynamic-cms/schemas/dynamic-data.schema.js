@@ -63,16 +63,21 @@ _ts_decorate([
 ], DynamicData.prototype, "_data", void 0);
 _ts_decorate([
     (0, _mongoose.Prop)({
+        type: Date,
         default: null
     }),
     _ts_metadata("design:type", Object)
 ], DynamicData.prototype, "deletedAt", void 0);
 _ts_decorate([
-    (0, _mongoose.Prop)(),
+    (0, _mongoose.Prop)({
+        type: String
+    }),
     _ts_metadata("design:type", String)
 ], DynamicData.prototype, "createdBy", void 0);
 _ts_decorate([
-    (0, _mongoose.Prop)(),
+    (0, _mongoose.Prop)({
+        type: String
+    }),
     _ts_metadata("design:type", String)
 ], DynamicData.prototype, "updatedBy", void 0);
 DynamicData = _ts_decorate([

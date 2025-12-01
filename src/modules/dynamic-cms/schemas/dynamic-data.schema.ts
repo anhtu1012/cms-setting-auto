@@ -22,13 +22,13 @@ export class DynamicData {
   @Prop({ type: Object, required: true })
   _data: Record<string, any>; // Dữ liệu thực tế (flexible schema)
 
-  @Prop({ default: null })
+  @Prop({ type: Date, default: null })
   deletedAt?: Date | null; // Cho soft delete
 
-  @Prop()
+  @Prop({ type: String })
   createdBy?: string;
 
-  @Prop()
+  @Prop({ type: String })
   updatedBy?: string;
 }
 
