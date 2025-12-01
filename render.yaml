@@ -3,10 +3,8 @@ services:
     name: cms-setting-auto
     env: node
     plan: free
-    buildCommand: npm install; npm run build
+    buildCommand: npm install --production
     startCommand: npm run start:prod
     envVars:
       - key: NODE_VERSION
         value: 20.11.0
-      - key: NODE_OPTIONS
-        value: "--max-old-space-size=4096"
