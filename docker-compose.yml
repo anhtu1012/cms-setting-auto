@@ -28,7 +28,7 @@ services:
       NODE_ENV: production
       PORT: 3001
       # Update MongoDB connection string to use docker service name
-      MONGODB_URI: mongodb+srv://phamanhtu1012:0387905007Tu@cluster0.ieprzek.mongodb.net/cms-setting-auto
+      MONGODB_URI: ${MONGODB_URI}
       JWT_SECRET: your-secret-key-change-in-production
       JWT_EXPIRES_IN: 7d
     depends_on:
