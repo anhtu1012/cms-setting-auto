@@ -12,6 +12,7 @@ CMD ["npm", "run", "start:dev"]
 
 # Build stage
 FROM base AS build
+ENV NODE_OPTIONS="--max-old-space-size=4096"
 RUN npm ci
 COPY . .
 RUN npm run build
