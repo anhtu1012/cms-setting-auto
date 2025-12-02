@@ -95,6 +95,205 @@ export class DynamicDataService {
   }
 
   /**
+   * Tạo nhiều documents cùng lúc (bulk create)
+   */
+  async createMany(
+    collectionName: string,
+    databaseId: string,
+    dataArray: Record<string, any>[],
+    userId: string | null,
+  ): Promise<{
+    success: number;
+    failed: number;
+    results: Array<{
+      success: boolean;
+      data?: DynamicData;
+      error?: string;
+      index: number;
+    }>;
+  }> {
+    // Kiểm tra collection schema có tồn tại không
+    const schema = await this.collectionSchemaService.findByNamePublic(
+      collectionName,
+      databaseId,
+    );
+
+    if (!schema) {
+      throw new NotFoundException(
+        `Collection schema "${collectionName}" not found`,
+      );
+    }
+
+    const results = [];
+    let successCount = 0;
+    let failedCount = 0;
+
+    // Xử lý từng document
+    for (let i = 0; i < dataArray.length; i++) {
+      try {
+        const data = dataArray[i];
+
+        // Validate dữ liệu
+        const validation =
+          await this.collectionSchemaService.validateDataPublic(
+            collectionName,
+            databaseId,
+            data,
+          );
+
+        if (!validation.valid) {
+          results.push({
+            success: false,
+            error: `Validation failed: ${JSON.stringify(validation.errors)}`,
+            index: i,
+          });
+          failedCount++;
+          continue;
+        }
+
+        // Tạo document
+        const document = new this.dynamicDataModel({
+          _collection: collectionName,
+          userId: userId ? new Types.ObjectId(userId) : null,
+          databaseId: new Types.ObjectId(databaseId),
+          _data: data,
+          createdBy: userId,
+          updatedBy: userId,
+        });
+
+        const saved = await document.save();
+        results.push({
+          success: true,
+          data: this.transformDocument(saved),
+          index: i,
+        });
+        successCount++;
+      } catch (error) {
+        results.push({
+          success: false,
+          error: error.message || 'Unknown error',
+          index: i,
+        });
+        failedCount++;
+      }
+    }
+
+    return {
+      success: successCount,
+      failed: failedCount,
+      results,
+    };
+  }
+
+  /**
+   * Thay thế toàn bộ data cũ bằng data mới (replace all)
+   * Xóa tất cả documents cũ và tạo mới từ mảng
+   */
+  async replaceAll(
+    collectionName: string,
+    databaseId: string,
+    dataArray: Record<string, any>[],
+    userId: string | null,
+  ): Promise<{
+    deleted: number;
+    created: number;
+    failed: number;
+    results: Array<{
+      success: boolean;
+      data?: DynamicData;
+      error?: string;
+      index: number;
+    }>;
+  }> {
+    // Kiểm tra collection schema có tồn tại không
+    const schema = await this.collectionSchemaService.findByNamePublic(
+      collectionName,
+      databaseId,
+    );
+
+    if (!schema) {
+      throw new NotFoundException(
+        `Collection schema "${collectionName}" not found`,
+      );
+    }
+
+    // Xóa tất cả documents cũ trong collection
+    const deleteQuery: FilterQuery<DynamicDataDocument> = {
+      _collection: collectionName,
+      databaseId: new Types.ObjectId(databaseId),
+    };
+
+    // Chỉ xóa documents của user nếu có userId
+    if (userId) {
+      deleteQuery.userId = new Types.ObjectId(userId);
+    }
+
+    const deleteResult = await this.dynamicDataModel.deleteMany(deleteQuery);
+    const deletedCount = deleteResult.deletedCount || 0;
+
+    // Tạo documents mới
+    const results = [];
+    let createdCount = 0;
+    let failedCount = 0;
+
+    for (let i = 0; i < dataArray.length; i++) {
+      try {
+        const data = dataArray[i];
+
+        // Validate dữ liệu
+        const validation =
+          await this.collectionSchemaService.validateDataPublic(
+            collectionName,
+            databaseId,
+            data,
+          );
+
+        if (!validation.valid) {
+          results.push({
+            success: false,
+            error: `Validation failed: ${JSON.stringify(validation.errors)}`,
+            index: i,
+          });
+          failedCount++;
+          continue;
+        }
+
+        // Tạo document mới
+        const document = new this.dynamicDataModel({
+          _collection: collectionName,
+          userId: userId ? new Types.ObjectId(userId) : null,
+          databaseId: new Types.ObjectId(databaseId),
+          _data: data,
+          createdBy: userId,
+          updatedBy: userId,
+        });
+
+        const saved = await document.save();
+        results.push({
+          success: true,
+          data: this.transformDocument(saved),
+          index: i,
+        });
+        createdCount++;
+      } catch (error) {
+        results.push({
+          success: false,
+          error: error.message || 'Unknown error',
+          index: i,
+        });
+        failedCount++;
+      }
+    }
+
+    return {
+      deleted: deletedCount,
+      created: createdCount,
+      failed: failedCount,
+      results,
+    };
+  }
+
+  /**
    * Lấy danh sách documents trong collection của user
    */
   async findAll(

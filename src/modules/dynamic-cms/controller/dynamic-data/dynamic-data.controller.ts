@@ -9,6 +9,7 @@ import {
   Delete,
   Query,
   Request,
+  BadRequestException,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -59,6 +60,124 @@ export class DynamicDataController {
       collectionName,
       databaseId,
       data,
+      userId,
+    );
+  }
+
+  @Post('bulk')
+  @ApiOperation({ summary: 'Create multiple documents in dynamic collection' })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({ name: 'collectionName', example: 'products' })
+  @ApiBody({
+    description: 'Array of document data to create',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+      },
+      example: [
+        {
+          product_name: 'iPhone 15 Pro',
+          sku: 'IPHONE-15-PRO',
+          price: 999.99,
+          category: 'electronics',
+          description: 'Latest iPhone model',
+          tags: ['new', 'bestseller'],
+          in_stock: true,
+        },
+        {
+          product_name: 'Samsung Galaxy S24',
+          sku: 'SAMSUNG-S24',
+          price: 899.99,
+          category: 'electronics',
+          description: 'Latest Samsung flagship',
+          tags: ['new', 'android'],
+          in_stock: true,
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: 201,
+    description: 'Documents created (returns success/failed count)',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 404, description: 'Collection schema not found' })
+  createMany(
+    @Param('databaseId') databaseId: string,
+    @Param('collectionName') collectionName: string,
+    @Body() dataArray: Record<string, any>[],
+    @Request() req,
+  ) {
+    const userId = req?.user?.userId || null;
+
+    if (!Array.isArray(dataArray)) {
+      throw new BadRequestException('Body must be an array of objects');
+    }
+
+    return this.dynamicDataService.createMany(
+      collectionName,
+      databaseId,
+      dataArray,
+      userId,
+    );
+  }
+
+  @Put('replace-all')
+  @ApiOperation({
+    summary: 'Replace all documents in collection with new data array',
+  })
+  @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
+  @ApiParam({ name: 'collectionName', example: 'products' })
+  @ApiBody({
+    description:
+      'Array of new document data (will delete all old data and create new)',
+    schema: {
+      type: 'array',
+      items: {
+        type: 'object',
+      },
+      example: [
+        {
+          product_name: 'New Product 1',
+          sku: 'NEW-001',
+          price: 499.99,
+          category: 'electronics',
+          in_stock: true,
+        },
+        {
+          product_name: 'New Product 2',
+          sku: 'NEW-002',
+          price: 599.99,
+          category: 'electronics',
+          in_stock: true,
+        },
+      ],
+    },
+  })
+  @ApiResponse({
+    status: 200,
+    description:
+      'All old data deleted and new data created (returns deleted/created count)',
+  })
+  @ApiResponse({ status: 400, description: 'Invalid input' })
+  @ApiResponse({ status: 404, description: 'Collection schema not found' })
+  replaceAll(
+    @Param('databaseId') databaseId: string,
+    @Param('collectionName') collectionName: string,
+    @Body() dataArray: Record<string, any>[],
+    @Request() req,
+  ) {
+    const userId = req?.user?.userId || null;
+
+    if (!Array.isArray(dataArray)) {
+      throw new BadRequestException('Body must be an array of objects');
+    }
+
+    return this.dynamicDataService.replaceAll(
+      collectionName,
+      databaseId,
+      dataArray,
       userId,
     );
   }

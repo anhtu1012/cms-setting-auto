@@ -31,6 +31,20 @@ let DynamicDataController = class DynamicDataController {
         const userId = req?.user?.userId || null;
         return this.dynamicDataService.create(collectionName, databaseId, data, userId);
     }
+    createMany(databaseId, collectionName, dataArray, req) {
+        const userId = req?.user?.userId || null;
+        if (!Array.isArray(dataArray)) {
+            throw new _common.BadRequestException('Body must be an array of objects');
+        }
+        return this.dynamicDataService.createMany(collectionName, databaseId, dataArray, userId);
+    }
+    replaceAll(databaseId, collectionName, dataArray, req) {
+        const userId = req?.user?.userId || null;
+        if (!Array.isArray(dataArray)) {
+            throw new _common.BadRequestException('Body must be an array of objects');
+        }
+        return this.dynamicDataService.replaceAll(collectionName, databaseId, dataArray, userId);
+    }
     findAll(databaseId, collectionName, paginationDto, req) {
         const userId = req?.user?.userId || null;
         return this.dynamicDataService.findAll(collectionName, userId, databaseId, paginationDto);
@@ -129,6 +143,142 @@ _ts_decorate([
     ]),
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "create", null);
+_ts_decorate([
+    (0, _common.Post)('bulk'),
+    (0, _swagger.ApiOperation)({
+        summary: 'Create multiple documents in dynamic collection'
+    }),
+    (0, _swagger.ApiParam)({
+        name: 'databaseId',
+        example: '507f1f77bcf86cd799439011'
+    }),
+    (0, _swagger.ApiParam)({
+        name: 'collectionName',
+        example: 'products'
+    }),
+    (0, _swagger.ApiBody)({
+        description: 'Array of document data to create',
+        schema: {
+            type: 'array',
+            items: {
+                type: 'object'
+            },
+            example: [
+                {
+                    product_name: 'iPhone 15 Pro',
+                    sku: 'IPHONE-15-PRO',
+                    price: 999.99,
+                    category: 'electronics',
+                    description: 'Latest iPhone model',
+                    tags: [
+                        'new',
+                        'bestseller'
+                    ],
+                    in_stock: true
+                },
+                {
+                    product_name: 'Samsung Galaxy S24',
+                    sku: 'SAMSUNG-S24',
+                    price: 899.99,
+                    category: 'electronics',
+                    description: 'Latest Samsung flagship',
+                    tags: [
+                        'new',
+                        'android'
+                    ],
+                    in_stock: true
+                }
+            ]
+        }
+    }),
+    (0, _swagger.ApiResponse)({
+        status: 201,
+        description: 'Documents created (returns success/failed count)'
+    }),
+    (0, _swagger.ApiResponse)({
+        status: 400,
+        description: 'Invalid input'
+    }),
+    (0, _swagger.ApiResponse)({
+        status: 404,
+        description: 'Collection schema not found'
+    }),
+    _ts_param(0, (0, _common.Param)('databaseId')),
+    _ts_param(1, (0, _common.Param)('collectionName')),
+    _ts_param(2, (0, _common.Body)()),
+    _ts_param(3, (0, _common.Request)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String,
+        String,
+        Array,
+        void 0
+    ]),
+    _ts_metadata("design:returntype", void 0)
+], DynamicDataController.prototype, "createMany", null);
+_ts_decorate([
+    (0, _common.Put)('replace-all'),
+    (0, _swagger.ApiOperation)({
+        summary: 'Replace all documents in collection with new data array'
+    }),
+    (0, _swagger.ApiParam)({
+        name: 'databaseId',
+        example: '507f1f77bcf86cd799439011'
+    }),
+    (0, _swagger.ApiParam)({
+        name: 'collectionName',
+        example: 'products'
+    }),
+    (0, _swagger.ApiBody)({
+        description: 'Array of new document data (will delete all old data and create new)',
+        schema: {
+            type: 'array',
+            items: {
+                type: 'object'
+            },
+            example: [
+                {
+                    product_name: 'New Product 1',
+                    sku: 'NEW-001',
+                    price: 499.99,
+                    category: 'electronics',
+                    in_stock: true
+                },
+                {
+                    product_name: 'New Product 2',
+                    sku: 'NEW-002',
+                    price: 599.99,
+                    category: 'electronics',
+                    in_stock: true
+                }
+            ]
+        }
+    }),
+    (0, _swagger.ApiResponse)({
+        status: 200,
+        description: 'All old data deleted and new data created (returns deleted/created count)'
+    }),
+    (0, _swagger.ApiResponse)({
+        status: 400,
+        description: 'Invalid input'
+    }),
+    (0, _swagger.ApiResponse)({
+        status: 404,
+        description: 'Collection schema not found'
+    }),
+    _ts_param(0, (0, _common.Param)('databaseId')),
+    _ts_param(1, (0, _common.Param)('collectionName')),
+    _ts_param(2, (0, _common.Body)()),
+    _ts_param(3, (0, _common.Request)()),
+    _ts_metadata("design:type", Function),
+    _ts_metadata("design:paramtypes", [
+        String,
+        String,
+        Array,
+        void 0
+    ]),
+    _ts_metadata("design:returntype", void 0)
+], DynamicDataController.prototype, "replaceAll", null);
 _ts_decorate([
     (0, _common.Get)(),
     (0, _swagger.ApiOperation)({
