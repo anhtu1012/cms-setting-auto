@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { MongooseModule } from '@nestjs/mongoose';
 import { TierService } from './tier.service';
+import { TierConfigService } from './tier-config.service';
+import { TierConfigController } from './tier-config.controller';
 import { User, UserSchema } from '../../modules/users/schemas/user.schema';
 import {
   Database,
@@ -10,6 +12,7 @@ import {
   DynamicData,
   DynamicDataSchema,
 } from '../../modules/dynamic-cms/schemas/dynamic-data.schema';
+import { TierConfig, TierConfigSchema } from './schemas/tier-config.schema';
 import { TierController } from './tier.controller';
 
 @Module({
@@ -18,10 +21,11 @@ import { TierController } from './tier.controller';
       { name: User.name, schema: UserSchema },
       { name: Database.name, schema: DatabaseSchema },
       { name: DynamicData.name, schema: DynamicDataSchema },
+      { name: TierConfig.name, schema: TierConfigSchema },
     ]),
   ],
-  controllers: [TierController],
-  providers: [TierService],
-  exports: [TierService],
+  controllers: [TierController, TierConfigController],
+  providers: [TierService, TierConfigService],
+  exports: [TierService, TierConfigService],
 })
 export class TierModule {}

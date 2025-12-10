@@ -1,13 +1,15 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getModelToken } from '@nestjs/mongoose';
 import { TierService } from './tier.service';
+import { TierConfigService } from './tier-config.service';
 import { User } from '../../modules/users/schemas/user.schema';
 import { Database } from '../../modules/dynamic-cms/schemas/database.schema';
 import { DynamicData } from '../../modules/dynamic-cms/schemas/dynamic-data.schema';
-import { AccountTier } from '../enums/tier.enum';
+import { TierConfig } from './schemas/tier-config.schema';
 
 describe('TierService', () => {
   let service: TierService;
+  let tierConfigService: TierConfigService;
   let userModel: any;
   let databaseModel: any;
   let dynamicDataModel: any;
@@ -15,16 +17,40 @@ describe('TierService', () => {
   const mockUser = {
     _id: '507f1f77bcf86cd799439011',
     email: 'test@example.com',
-    tier: AccountTier.FREE,
+    tier: 'free',
     currentDatabaseCount: 0,
     apiCallsToday: 0,
     save: jest.fn().mockResolvedValue(this),
+  };
+
+  const mockTierConfigService = {
+    getTierLimits: jest.fn().mockResolvedValue({
+      maxDatabases: 2,
+      maxDataPerCollection: 100,
+      maxCollectionsPerDatabase: 5,
+      maxStorageGB: 1,
+      maxApiCallsPerDay: 1000,
+    }),
+    getTierByCode: jest.fn().mockResolvedValue({
+      tierCode: 'free',
+      tierName: 'Free',
+      maxDatabases: 2,
+      maxDataPerCollection: 100,
+      maxCollectionsPerDatabase: 5,
+      maxStorageGB: 1,
+      maxApiCallsPerDay: 1000,
+    }),
+    isUnlimited: jest.fn((limit: number) => limit === -1),
   };
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         TierService,
+        {
+          provide: TierConfigService,
+          useValue: mockTierConfigService,
+        },
         {
           provide: getModelToken(User.name),
           useValue: {
@@ -47,10 +73,19 @@ describe('TierService', () => {
             aggregate: jest.fn(),
           },
         },
+        {
+          provide: getModelToken(TierConfig.name),
+          useValue: {
+            find: jest.fn(),
+            findOne: jest.fn(),
+            create: jest.fn(),
+          },
+        },
       ],
     }).compile();
 
     service = module.get<TierService>(TierService);
+    tierConfigService = module.get<TierConfigService>(TierConfigService);
     userModel = module.get(getModelToken(User.name));
     databaseModel = module.get(getModelToken(Database.name));
     dynamicDataModel = module.get(getModelToken(DynamicData.name));
@@ -75,7 +110,7 @@ describe('TierService', () => {
       expect(result).toHaveProperty('tier');
       expect(result).toHaveProperty('limits');
       expect(result).toHaveProperty('usage');
-      expect(result.tier).toBe(AccountTier.FREE);
+      expect(result.tier).toBe('free');
       expect(result.limits.maxDatabases).toBe(2);
       expect(result.usage.databases).toBe(1);
     });
@@ -116,10 +151,19 @@ describe('TierService', () => {
     });
 
     it('should allow unlimited databases for ENTERPRISE tier', async () => {
-      const enterpriseUser = { ...mockUser, tier: AccountTier.ENTERPRISE };
+      const enterpriseUser = { ...mockUser, tier: 'enterprise' };
 
       userModel.findById.mockReturnValue({
         exec: jest.fn().mockResolvedValue(enterpriseUser),
+      });
+
+      // Mock unlimited tier limits
+      mockTierConfigService.getTierLimits.mockResolvedValueOnce({
+        maxDatabases: -1,
+        maxDataPerCollection: -1,
+        maxCollectionsPerDatabase: -1,
+        maxStorageGB: -1,
+        maxApiCallsPerDay: -1,
       });
 
       const result = await service.canCreateDatabase(mockUser._id);
@@ -218,12 +262,12 @@ describe('TierService', () => {
 
       const result = await service.upgradeTier(
         mockUser._id,
-        AccountTier.PREMIUM,
+        'premium',
         'Payment successful',
       );
 
       expect(userWithSave.save).toHaveBeenCalled();
-      expect(userWithSave.tier).toBe(AccountTier.PREMIUM);
+      expect(userWithSave.tier).toBe('premium');
       expect(userWithSave.tierHistory.length).toBe(1);
       expect(userWithSave.tierHistory[0].upgradeReason).toBe(
         'Payment successful',

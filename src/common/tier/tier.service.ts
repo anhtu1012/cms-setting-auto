@@ -7,12 +7,6 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../../modules/users/schemas/user.schema';
 import {
-  getTierLimits,
-  isUnlimited,
-  AccountTier,
-  TierLimits,
-} from '../enums/tier.enum';
-import {
   Database,
   DatabaseDocument,
 } from '../../modules/dynamic-cms/schemas/database.schema';
@@ -20,9 +14,11 @@ import {
   DynamicData,
   DynamicDataDocument,
 } from '../../modules/dynamic-cms/schemas/dynamic-data.schema';
+import { TierConfigService } from './tier-config.service';
 
 /**
  * Service để kiểm tra và quản lý giới hạn theo tier
+ * Sử dụng TierConfigService để lấy thông tin tier động từ database
  */
 @Injectable()
 export class TierService {
@@ -31,14 +27,15 @@ export class TierService {
     @InjectModel(Database.name) private databaseModel: Model<DatabaseDocument>,
     @InjectModel(DynamicData.name)
     private dynamicDataModel: Model<DynamicDataDocument>,
+    private tierConfigService: TierConfigService,
   ) {}
 
   /**
    * Lấy thông tin tier và usage của user
    */
   async getUserTierInfo(userId: string): Promise<{
-    tier: AccountTier;
-    limits: TierLimits;
+    tier: string;
+    limits: any;
     usage: {
       databases: number;
       apiCallsToday: number;
@@ -49,7 +46,7 @@ export class TierService {
       throw new Error('User not found');
     }
 
-    const tierLimits = getTierLimits(user.tier);
+    const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
     const databaseCount = await this.databaseModel
       .countDocuments({
         userId: user._id,
@@ -86,10 +83,10 @@ export class TierService {
       };
     }
 
-    const tierLimits = getTierLimits(user.tier);
+    const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
 
     // Nếu unlimited
-    if (isUnlimited(tierLimits.maxDatabases)) {
+    if (this.tierConfigService.isUnlimited(tierLimits.maxDatabases)) {
       return {
         allowed: true,
         current: -1,
@@ -146,10 +143,10 @@ export class TierService {
       };
     }
 
-    const tierLimits = getTierLimits(user.tier);
+    const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
 
     // Nếu unlimited
-    if (isUnlimited(tierLimits.maxDataPerCollection)) {
+    if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
       return {
         allowed: true,
         current: -1,
@@ -199,13 +196,16 @@ export class TierService {
    */
   async upgradeTier(
     userId: string,
-    newTier: AccountTier,
+    newTier: string,
     reason?: string,
   ): Promise<UserDocument> {
     const user = await this.userModel.findById(userId).exec();
     if (!user) {
       throw new Error('User not found');
     }
+
+    // Kiểm tra tier mới có tồn tại không
+    await this.tierConfigService.getTierByCode(newTier);
 
     // Lưu lịch sử
     if (user.tier !== newTier) {
@@ -225,7 +225,7 @@ export class TierService {
     user.tierStartDate = new Date();
 
     // Set expiry date (1 năm cho các tier trả phí)
-    if (newTier !== AccountTier.FREE) {
+    if (newTier !== 'free') {
       const expiryDate = new Date();
       expiryDate.setFullYear(expiryDate.getFullYear() + 1);
       user.tierExpiryDate = expiryDate;
@@ -339,7 +339,7 @@ export class TierService {
       );
     }
 
-    const tierLimits = getTierLimits(user.tier);
+    const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
 
     // Lấy danh sách collections và đếm data
     const collections = await this.dynamicDataModel
@@ -363,7 +363,9 @@ export class TierService {
 
     return collections.map((col) => {
       const limit = tierLimits.maxDataPerCollection;
-      const percentage = isUnlimited(limit) ? 0 : (col.count / limit) * 100;
+      const percentage = this.tierConfigService.isUnlimited(limit)
+        ? 0
+        : (col.count / limit) * 100;
 
       return {
         collection: col._id,

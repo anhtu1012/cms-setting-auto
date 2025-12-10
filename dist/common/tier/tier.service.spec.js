@@ -5,27 +5,52 @@ Object.defineProperty(exports, "__esModule", {
 const _testing = require("@nestjs/testing");
 const _mongoose = require("@nestjs/mongoose");
 const _tierservice = require("./tier.service");
+const _tierconfigservice = require("./tier-config.service");
 const _userschema = require("../../modules/users/schemas/user.schema");
 const _databaseschema = require("../../modules/dynamic-cms/schemas/database.schema");
 const _dynamicdataschema = require("../../modules/dynamic-cms/schemas/dynamic-data.schema");
-const _tierenum = require("../enums/tier.enum");
+const _tierconfigschema = require("./schemas/tier-config.schema");
 describe('TierService', ()=>{
     let service;
+    let tierConfigService;
     let userModel;
     let databaseModel;
     let dynamicDataModel;
     const mockUser = {
         _id: '507f1f77bcf86cd799439011',
         email: 'test@example.com',
-        tier: _tierenum.AccountTier.FREE,
+        tier: 'free',
         currentDatabaseCount: 0,
         apiCallsToday: 0,
         save: jest.fn().mockResolvedValue(void 0)
+    };
+    const mockTierConfigService = {
+        getTierLimits: jest.fn().mockResolvedValue({
+            maxDatabases: 2,
+            maxDataPerCollection: 100,
+            maxCollectionsPerDatabase: 5,
+            maxStorageGB: 1,
+            maxApiCallsPerDay: 1000
+        }),
+        getTierByCode: jest.fn().mockResolvedValue({
+            tierCode: 'free',
+            tierName: 'Free',
+            maxDatabases: 2,
+            maxDataPerCollection: 100,
+            maxCollectionsPerDatabase: 5,
+            maxStorageGB: 1,
+            maxApiCallsPerDay: 1000
+        }),
+        isUnlimited: jest.fn((limit)=>limit === -1)
     };
     beforeEach(async ()=>{
         const module = await _testing.Test.createTestingModule({
             providers: [
                 _tierservice.TierService,
+                {
+                    provide: _tierconfigservice.TierConfigService,
+                    useValue: mockTierConfigService
+                },
                 {
                     provide: (0, _mongoose.getModelToken)(_userschema.User.name),
                     useValue: {
@@ -47,10 +72,19 @@ describe('TierService', ()=>{
                         countDocuments: jest.fn(),
                         aggregate: jest.fn()
                     }
+                },
+                {
+                    provide: (0, _mongoose.getModelToken)(_tierconfigschema.TierConfig.name),
+                    useValue: {
+                        find: jest.fn(),
+                        findOne: jest.fn(),
+                        create: jest.fn()
+                    }
                 }
             ]
         }).compile();
         service = module.get(_tierservice.TierService);
+        tierConfigService = module.get(_tierconfigservice.TierConfigService);
         userModel = module.get((0, _mongoose.getModelToken)(_userschema.User.name));
         databaseModel = module.get((0, _mongoose.getModelToken)(_databaseschema.Database.name));
         dynamicDataModel = module.get((0, _mongoose.getModelToken)(_dynamicdataschema.DynamicData.name));
@@ -70,7 +104,7 @@ describe('TierService', ()=>{
             expect(result).toHaveProperty('tier');
             expect(result).toHaveProperty('limits');
             expect(result).toHaveProperty('usage');
-            expect(result.tier).toBe(_tierenum.AccountTier.FREE);
+            expect(result.tier).toBe('free');
             expect(result.limits.maxDatabases).toBe(2);
             expect(result.usage.databases).toBe(1);
         });
@@ -104,10 +138,18 @@ describe('TierService', ()=>{
         it('should allow unlimited databases for ENTERPRISE tier', async ()=>{
             const enterpriseUser = {
                 ...mockUser,
-                tier: _tierenum.AccountTier.ENTERPRISE
+                tier: 'enterprise'
             };
             userModel.findById.mockReturnValue({
                 exec: jest.fn().mockResolvedValue(enterpriseUser)
+            });
+            // Mock unlimited tier limits
+            mockTierConfigService.getTierLimits.mockResolvedValueOnce({
+                maxDatabases: -1,
+                maxDataPerCollection: -1,
+                maxCollectionsPerDatabase: -1,
+                maxStorageGB: -1,
+                maxApiCallsPerDay: -1
             });
             const result = await service.canCreateDatabase(mockUser._id);
             expect(result.allowed).toBe(true);
@@ -176,9 +218,9 @@ describe('TierService', ()=>{
             userModel.findById.mockReturnValue({
                 exec: jest.fn().mockResolvedValue(userWithSave)
             });
-            const result = await service.upgradeTier(mockUser._id, _tierenum.AccountTier.PREMIUM, 'Payment successful');
+            const result = await service.upgradeTier(mockUser._id, 'premium', 'Payment successful');
             expect(userWithSave.save).toHaveBeenCalled();
-            expect(userWithSave.tier).toBe(_tierenum.AccountTier.PREMIUM);
+            expect(userWithSave.tier).toBe('premium');
             expect(userWithSave.tierHistory.length).toBe(1);
             expect(userWithSave.tierHistory[0].upgradeReason).toBe('Payment successful');
         });

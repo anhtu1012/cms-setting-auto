@@ -24,7 +24,6 @@ _export(exports, {
 });
 const _classvalidator = require("class-validator");
 const _swagger = require("@nestjs/swagger");
-const _tierenum = require("../enums/tier.enum");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -46,12 +45,11 @@ _ts_decorate([
 ], UpgradeTierDto.prototype, "userId", void 0);
 _ts_decorate([
     (0, _swagger.ApiProperty)({
-        description: 'New tier level',
-        enum: _tierenum.AccountTier,
-        example: _tierenum.AccountTier.PREMIUM
+        description: 'New tier code',
+        example: 'premium'
     }),
-    (0, _classvalidator.IsEnum)(_tierenum.AccountTier),
-    _ts_metadata("design:type", typeof _tierenum.AccountTier === "undefined" ? Object : _tierenum.AccountTier)
+    (0, _classvalidator.IsString)(),
+    _ts_metadata("design:type", String)
 ], UpgradeTierDto.prototype, "newTier", void 0);
 _ts_decorate([
     (0, _swagger.ApiPropertyOptional)({
@@ -66,9 +64,9 @@ let TierInfoResponseDto = class TierInfoResponseDto {
 };
 _ts_decorate([
     (0, _swagger.ApiProperty)({
-        enum: _tierenum.AccountTier
+        example: 'free'
     }),
-    _ts_metadata("design:type", typeof _tierenum.AccountTier === "undefined" ? Object : _tierenum.AccountTier)
+    _ts_metadata("design:type", String)
 ], TierInfoResponseDto.prototype, "tier", void 0);
 _ts_decorate([
     (0, _swagger.ApiProperty)({

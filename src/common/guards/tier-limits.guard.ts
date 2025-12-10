@@ -8,7 +8,6 @@ import {
 import { InjectModel } from '@nestjs/mongoose';
 import { Model, Types } from 'mongoose';
 import { User, UserDocument } from '../../modules/users/schemas/user.schema';
-import { getTierLimits, isUnlimited, AccountTier } from '../enums/tier.enum';
 import {
   Database,
   DatabaseDocument,
@@ -18,6 +17,7 @@ import {
   DynamicDataDocument,
 } from '../../modules/dynamic-cms/schemas/dynamic-data.schema';
 import { ROUTE_PATTERNS } from '../constants/api-routes.constants';
+import { TierConfigService } from '../tier/tier-config.service';
 
 /**
  * Guard để kiểm tra giới hạn theo tier của user
@@ -32,6 +32,7 @@ export class TierLimitsGuard implements CanActivate {
     @InjectModel(Database.name) private databaseModel: Model<DatabaseDocument>,
     @InjectModel(DynamicData.name)
     private dynamicDataModel: Model<DynamicDataDocument>,
+    private tierConfigService: TierConfigService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -48,7 +49,7 @@ export class TierLimitsGuard implements CanActivate {
       throw new ForbiddenException('User not found');
     }
 
-    const tierLimits = getTierLimits(user.tier);
+    const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
     const method = request.method;
     const path = request.route?.path;
 
@@ -117,7 +118,7 @@ export class TierLimitsGuard implements CanActivate {
     tierLimits: any,
   ): Promise<void> {
     // Nếu unlimited thì bỏ qua
-    if (isUnlimited(tierLimits.maxDatabases)) {
+    if (this.tierConfigService.isUnlimited(tierLimits.maxDatabases)) {
       return;
     }
 
@@ -145,7 +146,7 @@ export class TierLimitsGuard implements CanActivate {
     request: any,
   ): Promise<void> {
     // Nếu unlimited thì bỏ qua
-    if (isUnlimited(tierLimits.maxDataPerCollection)) {
+    if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
       return;
     }
 
@@ -197,7 +198,7 @@ export class TierLimitsGuard implements CanActivate {
     request: any,
   ): Promise<void> {
     // Nếu unlimited thì bỏ qua
-    if (isUnlimited(tierLimits.maxDataPerCollection)) {
+    if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
       return;
     }
 
@@ -257,7 +258,7 @@ export class TierLimitsGuard implements CanActivate {
     request: any,
   ): Promise<void> {
     // Nếu unlimited thì bỏ qua
-    if (isUnlimited(tierLimits.maxDataPerCollection)) {
+    if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
       return;
     }
 

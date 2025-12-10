@@ -17,7 +17,6 @@ _export(exports, {
     }
 });
 const _mongoose = require("@nestjs/mongoose");
-const _tierenum = require("../../../common/enums/tier.enum");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -89,10 +88,10 @@ _ts_decorate([
 _ts_decorate([
     (0, _mongoose.Prop)({
         type: String,
-        enum: Object.values(_tierenum.AccountTier),
-        default: _tierenum.AccountTier.FREE
+        default: 'free',
+        index: true
     }),
-    _ts_metadata("design:type", typeof _tierenum.AccountTier === "undefined" ? Object : _tierenum.AccountTier)
+    _ts_metadata("design:type", String)
 ], User.prototype, "tier", void 0);
 _ts_decorate([
     (0, _mongoose.Prop)(),

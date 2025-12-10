@@ -23,6 +23,7 @@ const _databasecontroller = require("./controller/database/database.controller")
 const _databaseownershipguard = require("../../common/guards/database-ownership.guard");
 const _tierlimitsguard = require("../../common/guards/tier-limits.guard");
 const _userschema = require("../users/schemas/user.schema");
+const _tiermodule = require("../../common/tier/tier.module");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -51,7 +52,8 @@ DynamicCmsModule = _ts_decorate([
                     name: _userschema.User.name,
                     schema: _userschema.UserSchema
                 }
-            ])
+            ]),
+            _tiermodule.TierModule
         ],
         controllers: [
             _databasecontroller.DatabaseController,
