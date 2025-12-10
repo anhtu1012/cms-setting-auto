@@ -12,10 +12,10 @@ const _common = require("@nestjs/common");
 const _mongoose = require("@nestjs/mongoose");
 const _mongoose1 = require("mongoose");
 const _userschema = require("../../modules/users/schemas/user.schema");
-const _tierenum = require("../enums/tier.enum");
 const _databaseschema = require("../../modules/dynamic-cms/schemas/database.schema");
 const _dynamicdataschema = require("../../modules/dynamic-cms/schemas/dynamic-data.schema");
 const _apiroutesconstants = require("../constants/api-routes.constants");
+const _tierconfigservice = require("../tier/tier-config.service");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -42,7 +42,7 @@ let TierLimitsGuard = class TierLimitsGuard {
         if (!user) {
             throw new _common.ForbiddenException('User not found');
         }
-        const tierLimits = (0, _tierenum.getTierLimits)(user.tier);
+        const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
         const method = request.method;
         const path = request.route?.path;
         // Kiểm tra giới hạn dựa trên endpoint
@@ -82,7 +82,7 @@ let TierLimitsGuard = class TierLimitsGuard {
    * Kiểm tra giới hạn tạo database
    */ async checkDatabaseLimit(user, tierLimits) {
         // Nếu unlimited thì bỏ qua
-        if ((0, _tierenum.isUnlimited)(tierLimits.maxDatabases)) {
+        if (this.tierConfigService.isUnlimited(tierLimits.maxDatabases)) {
             return;
         }
         // Đếm số database hiện tại của user
@@ -98,7 +98,7 @@ let TierLimitsGuard = class TierLimitsGuard {
    * Kiểm tra giới hạn tạo data trong collection
    */ async checkDataLimit(user, tierLimits, request) {
         // Nếu unlimited thì bỏ qua
-        if ((0, _tierenum.isUnlimited)(tierLimits.maxDataPerCollection)) {
+        if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
             return;
         }
         const databaseId = request.params.databaseId;
@@ -128,7 +128,7 @@ let TierLimitsGuard = class TierLimitsGuard {
    * Kiểm tra giới hạn tạo bulk data
    */ async checkBulkDataLimit(user, tierLimits, request) {
         // Nếu unlimited thì bỏ qua
-        if ((0, _tierenum.isUnlimited)(tierLimits.maxDataPerCollection)) {
+        if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
             return;
         }
         const databaseId = request.params.databaseId;
@@ -164,7 +164,7 @@ let TierLimitsGuard = class TierLimitsGuard {
    * Kiểm tra giới hạn replace-all
    */ async checkReplaceAllLimit(user, tierLimits, request) {
         // Nếu unlimited thì bỏ qua
-        if ((0, _tierenum.isUnlimited)(tierLimits.maxDataPerCollection)) {
+        if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
             return;
         }
         const databaseId = request.params.databaseId;
@@ -190,10 +190,11 @@ let TierLimitsGuard = class TierLimitsGuard {
             throw new _common.ForbiddenException(`Cannot replace with ${dataArray.length} items. Maximum data per collection is ${tierLimits.maxDataPerCollection} for your ${user.tier} tier.`);
         }
     }
-    constructor(userModel, databaseModel, dynamicDataModel){
+    constructor(userModel, databaseModel, dynamicDataModel, tierConfigService){
         this.userModel = userModel;
         this.databaseModel = databaseModel;
         this.dynamicDataModel = dynamicDataModel;
+        this.tierConfigService = tierConfigService;
     }
 };
 TierLimitsGuard = _ts_decorate([
@@ -205,7 +206,8 @@ TierLimitsGuard = _ts_decorate([
     _ts_metadata("design:paramtypes", [
         typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model,
         typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model,
-        typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model
+        typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model,
+        typeof _tierconfigservice.TierConfigService === "undefined" ? Object : _tierconfigservice.TierConfigService
     ])
 ], TierLimitsGuard);
 

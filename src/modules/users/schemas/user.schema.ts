@@ -1,6 +1,5 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
-import { AccountTier } from '../../../common/enums/tier.enum';
 
 export type UserDocument = User & Document;
 
@@ -33,13 +32,13 @@ export class User {
   @Prop()
   lastLogin?: Date;
 
-  // Account Tier Information
+  // Account Tier Information - Sử dụng tierCode động thay vì enum
   @Prop({
     type: String,
-    enum: Object.values(AccountTier),
-    default: AccountTier.FREE,
+    default: 'free', // Default tier code
+    index: true,
   })
-  tier: AccountTier;
+  tier: string; // tierCode: 'free', 'basic', 'premium', 'enterprise', hoặc tùy chỉnh
 
   @Prop()
   tierStartDate?: Date;
@@ -59,7 +58,7 @@ export class User {
     default: [],
   })
   tierHistory: Array<{
-    tier: AccountTier;
+    tier: string; // tierCode
     startDate: Date;
     endDate?: Date;
     upgradeReason?: string;

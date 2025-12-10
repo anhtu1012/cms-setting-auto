@@ -154,7 +154,17 @@ mongod
 sudo systemctl start mongod
 ```
 
-4. Chạy ứng dụng:
+4. Chạy migrations (Bắt buộc):
+
+```bash
+# Seed default tier configurations
+npm run migration:tier
+
+# Nếu có users hiện có, thêm tier cho họ
+npm run migration:run add-tier-to-users
+```
+
+5. Chạy ứng dụng:
 
 ```bash
 # Development
@@ -165,11 +175,43 @@ npm run build
 npm run start:prod
 ```
 
-5. (Optional) Seed dữ liệu mẫu cho Dynamic CMS:
+6. (Optional) Seed dữ liệu mẫu cho Dynamic CMS:
 
 ```bash
 ts-node examples/seed-schemas.ts
 ```
+
+## 🔄 Migrations
+
+Hệ thống sử dụng migration scripts để setup và update database.
+
+### Quick Commands
+
+```bash
+# Seed tier configurations (free, basic, premium, enterprise)
+npm run migration:tier
+
+# Add tier field to existing users
+npm run migration:run add-tier-to-users
+
+# Run any migration
+npm run migration:run <migration-name>
+```
+
+### Using Makefile (Alternative)
+
+```bash
+# Run tier migration
+make migration-tier
+
+# Run user migration
+make migration-users
+
+# Run all migrations
+make migration-all
+```
+
+👉 [Xem hướng dẫn chi tiết về Migrations](./docs/MIGRATION_GUIDE.md)
 
 ## 📚 API Endpoints
 

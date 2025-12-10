@@ -16,6 +16,7 @@ import { DatabaseController } from './controller/database/database.controller';
 import { DatabaseOwnershipGuard } from '../../common/guards/database-ownership.guard';
 import { TierLimitsGuard } from '../../common/guards/tier-limits.guard';
 import { User, UserSchema } from '../users/schemas/user.schema';
+import { TierModule } from '../../common/tier/tier.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { User, UserSchema } from '../users/schemas/user.schema';
       { name: DynamicData.name, schema: DynamicDataSchema },
       { name: User.name, schema: UserSchema },
     ]),
+    TierModule, // Import TierModule để sử dụng TierConfigService trong TierLimitsGuard
   ],
   controllers: [
     DatabaseController,

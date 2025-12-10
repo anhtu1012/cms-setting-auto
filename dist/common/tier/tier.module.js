@@ -11,9 +11,12 @@ Object.defineProperty(exports, "TierModule", {
 const _common = require("@nestjs/common");
 const _mongoose = require("@nestjs/mongoose");
 const _tierservice = require("./tier.service");
+const _tierconfigservice = require("./tier-config.service");
+const _tierconfigcontroller = require("./tier-config.controller");
 const _userschema = require("../../modules/users/schemas/user.schema");
 const _databaseschema = require("../../modules/dynamic-cms/schemas/database.schema");
 const _dynamicdataschema = require("../../modules/dynamic-cms/schemas/dynamic-data.schema");
+const _tierconfigschema = require("./schemas/tier-config.schema");
 const _tiercontroller = require("./tier.controller");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
@@ -38,17 +41,24 @@ TierModule = _ts_decorate([
                 {
                     name: _dynamicdataschema.DynamicData.name,
                     schema: _dynamicdataschema.DynamicDataSchema
+                },
+                {
+                    name: _tierconfigschema.TierConfig.name,
+                    schema: _tierconfigschema.TierConfigSchema
                 }
             ])
         ],
         controllers: [
-            _tiercontroller.TierController
+            _tiercontroller.TierController,
+            _tierconfigcontroller.TierConfigController
         ],
         providers: [
-            _tierservice.TierService
+            _tierservice.TierService,
+            _tierconfigservice.TierConfigService
         ],
         exports: [
-            _tierservice.TierService
+            _tierservice.TierService,
+            _tierconfigservice.TierConfigService
         ]
     })
 ], TierModule);

@@ -12,9 +12,9 @@ const _common = require("@nestjs/common");
 const _mongoose = require("@nestjs/mongoose");
 const _mongoose1 = require("mongoose");
 const _userschema = require("../../modules/users/schemas/user.schema");
-const _tierenum = require("../enums/tier.enum");
 const _databaseschema = require("../../modules/dynamic-cms/schemas/database.schema");
 const _dynamicdataschema = require("../../modules/dynamic-cms/schemas/dynamic-data.schema");
+const _tierconfigservice = require("./tier-config.service");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -37,7 +37,7 @@ let TierService = class TierService {
         if (!user) {
             throw new Error('User not found');
         }
-        const tierLimits = (0, _tierenum.getTierLimits)(user.tier);
+        const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
         const databaseCount = await this.databaseModel.countDocuments({
             userId: user._id,
             isActive: true
@@ -63,9 +63,9 @@ let TierService = class TierService {
                 limit: 0
             };
         }
-        const tierLimits = (0, _tierenum.getTierLimits)(user.tier);
+        const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
         // Nếu unlimited
-        if ((0, _tierenum.isUnlimited)(tierLimits.maxDatabases)) {
+        if (this.tierConfigService.isUnlimited(tierLimits.maxDatabases)) {
             return {
                 allowed: true,
                 current: -1,
@@ -100,9 +100,9 @@ let TierService = class TierService {
                 limit: 0
             };
         }
-        const tierLimits = (0, _tierenum.getTierLimits)(user.tier);
+        const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
         // Nếu unlimited
-        if ((0, _tierenum.isUnlimited)(tierLimits.maxDataPerCollection)) {
+        if (this.tierConfigService.isUnlimited(tierLimits.maxDataPerCollection)) {
             return {
                 allowed: true,
                 current: -1,
@@ -142,6 +142,8 @@ let TierService = class TierService {
         if (!user) {
             throw new Error('User not found');
         }
+        // Kiểm tra tier mới có tồn tại không
+        await this.tierConfigService.getTierByCode(newTier);
         // Lưu lịch sử
         if (user.tier !== newTier) {
             user.tierHistory.push({
@@ -155,7 +157,7 @@ let TierService = class TierService {
         user.tier = newTier;
         user.tierStartDate = new Date();
         // Set expiry date (1 năm cho các tier trả phí)
-        if (newTier !== _tierenum.AccountTier.FREE) {
+        if (newTier !== 'free') {
             const expiryDate = new Date();
             expiryDate.setFullYear(expiryDate.getFullYear() + 1);
             user.tierExpiryDate = expiryDate;
@@ -229,7 +231,7 @@ let TierService = class TierService {
         if (!database) {
             throw new _common.ForbiddenException(`Database not found or you don't have permission to access it`);
         }
-        const tierLimits = (0, _tierenum.getTierLimits)(user.tier);
+        const tierLimits = await this.tierConfigService.getTierLimits(user.tier);
         // Lấy danh sách collections và đếm data
         const collections = await this.dynamicDataModel.aggregate([
             {
@@ -253,7 +255,7 @@ let TierService = class TierService {
         ]).exec();
         return collections.map((col)=>{
             const limit = tierLimits.maxDataPerCollection;
-            const percentage = (0, _tierenum.isUnlimited)(limit) ? 0 : col.count / limit * 100;
+            const percentage = this.tierConfigService.isUnlimited(limit) ? 0 : col.count / limit * 100;
             return {
                 collection: col._id,
                 count: col.count,
@@ -294,10 +296,11 @@ let TierService = class TierService {
             }
         }).exec();
     }
-    constructor(userModel, databaseModel, dynamicDataModel){
+    constructor(userModel, databaseModel, dynamicDataModel, tierConfigService){
         this.userModel = userModel;
         this.databaseModel = databaseModel;
         this.dynamicDataModel = dynamicDataModel;
+        this.tierConfigService = tierConfigService;
     }
 };
 TierService = _ts_decorate([
@@ -309,7 +312,8 @@ TierService = _ts_decorate([
     _ts_metadata("design:paramtypes", [
         typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model,
         typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model,
-        typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model
+        typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model,
+        typeof _tierconfigservice.TierConfigService === "undefined" ? Object : _tierconfigservice.TierConfigService
     ])
 ], TierService);
 

@@ -1,6 +1,5 @@
-import { IsEnum, IsOptional, IsString, IsMongoId } from 'class-validator';
+import { IsOptional, IsString, IsMongoId } from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { AccountTier } from '../enums/tier.enum';
 
 /**
  * DTO cho việc nâng cấp tier
@@ -14,12 +13,11 @@ export class UpgradeTierDto {
   userId: string;
 
   @ApiProperty({
-    description: 'New tier level',
-    enum: AccountTier,
-    example: AccountTier.PREMIUM,
+    description: 'New tier code',
+    example: 'premium',
   })
-  @IsEnum(AccountTier)
-  newTier: AccountTier;
+  @IsString()
+  newTier: string;
 
   @ApiPropertyOptional({
     description: 'Reason for upgrade',
@@ -34,8 +32,8 @@ export class UpgradeTierDto {
  * Response DTO cho tier info
  */
 export class TierInfoResponseDto {
-  @ApiProperty({ enum: AccountTier })
-  tier: AccountTier;
+  @ApiProperty({ example: 'free' })
+  tier: string;
 
   @ApiProperty({
     description: 'Tier limits',
