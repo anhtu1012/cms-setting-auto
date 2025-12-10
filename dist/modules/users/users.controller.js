@@ -14,6 +14,7 @@ const _usersservice = require("./users.service");
 const _userdto = require("./dto/user.dto");
 const _paginationdto = require("../../common/dto/pagination.dto");
 const _jwtauthguard = require("../auth/guards/jwt-auth.guard");
+const _apiroutesconstants = require("../../common/constants/api-routes.constants");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -165,7 +166,7 @@ _ts_decorate([
 ], UsersController.prototype, "remove", null);
 UsersController = _ts_decorate([
     (0, _swagger.ApiTags)('users'),
-    (0, _common.Controller)('users'),
+    (0, _common.Controller)(_apiroutesconstants.USER_ROUTES.BASE),
     (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
     (0, _swagger.ApiBearerAuth)(),
     _ts_metadata("design:type", Function),

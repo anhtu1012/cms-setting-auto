@@ -128,6 +128,10 @@ let CollectionSchemaService = class CollectionSchemaService {
    * Lấy collection schema theo name trong database (không check ownership)
    * Dùng cho public API - chỉ cần databaseId
    */ async findByNamePublic(name, databaseId) {
+        // Validate ObjectId format
+        if (!_mongoose1.Types.ObjectId.isValid(databaseId)) {
+            throw new _common.BadRequestException(`Invalid databaseId format: "${databaseId}". Must be a 24 character hex string.`);
+        }
         return this.collectionSchemaModel.findOne({
             name,
             databaseId: new _mongoose1.Types.ObjectId(databaseId)

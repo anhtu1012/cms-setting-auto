@@ -20,9 +20,10 @@ import { UsersService } from './users.service';
 import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 import { PaginationDto } from '../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { USER_ROUTES } from '../../common/constants/api-routes.constants';
 
 @ApiTags('users')
-@Controller('users')
+@Controller(USER_ROUTES.BASE)
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class UsersController {

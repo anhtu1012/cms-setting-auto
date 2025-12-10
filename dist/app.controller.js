@@ -28,7 +28,7 @@ let AppController = class AppController {
     }
 };
 _ts_decorate([
-    (0, _common.Get)(),
+    (0, _common.Get)('v1'),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", []),
     _ts_metadata("design:returntype", String)

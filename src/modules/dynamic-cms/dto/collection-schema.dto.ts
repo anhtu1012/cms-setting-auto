@@ -10,7 +10,7 @@ import {
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { FieldType } from '../interfaces/field-types.interface';
+import { FieldType, RelationType } from '../interfaces/field-types.interface';
 
 export class FieldValidationDto {
   @ApiPropertyOptional({ description: 'Field is required' })
@@ -78,6 +78,57 @@ export class ReferenceConfigDto {
   @IsOptional()
   @IsBoolean()
   multiple?: boolean;
+
+  @ApiPropertyOptional({
+    enum: RelationType,
+    description: 'Type of relationship',
+    example: RelationType.ONE_TO_MANY,
+  })
+  @IsOptional()
+  @IsEnum(RelationType)
+  relationType?: RelationType;
+
+  @ApiPropertyOptional({
+    description: 'Cascade delete when parent is deleted',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  cascadeDelete?: boolean;
+
+  @ApiPropertyOptional({
+    description:
+      'Field name in the referenced collection for bidirectional relationship',
+    example: 'userId',
+  })
+  @IsOptional()
+  @IsString()
+  inverseSide?: string;
+
+  @ApiPropertyOptional({
+    description: 'Automatically populate this reference when querying',
+    default: false,
+  })
+  @IsOptional()
+  @IsBoolean()
+  autoPopulate?: boolean;
+
+  @ApiPropertyOptional({
+    description: 'Fields to populate from referenced collection',
+    type: [String],
+    example: ['name', 'email'],
+  })
+  @IsOptional()
+  @IsArray()
+  populateFields?: string[];
+
+  @ApiPropertyOptional({
+    description: 'Maximum depth for nested population',
+    default: 1,
+  })
+  @IsOptional()
+  @IsNumber()
+  populateDepth?: number;
 }
 
 export class FieldDefinitionDto {

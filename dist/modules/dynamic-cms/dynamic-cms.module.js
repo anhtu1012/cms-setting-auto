@@ -17,9 +17,12 @@ const _collectionschemaservice = require("./controller/collection-schema/collect
 const _collectionschemacontroller = require("./controller/collection-schema/collection-schema.controller");
 const _dynamicdataservice = require("./controller/dynamic-data/dynamic-data.service");
 const _dynamicdatacontroller = require("./controller/dynamic-data/dynamic-data.controller");
+const _relationshipservice = require("./controller/dynamic-data/relationship.service");
 const _databaseservice = require("./controller/database/database.service");
 const _databasecontroller = require("./controller/database/database.controller");
 const _databaseownershipguard = require("../../common/guards/database-ownership.guard");
+const _tierlimitsguard = require("../../common/guards/tier-limits.guard");
+const _userschema = require("../users/schemas/user.schema");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -43,6 +46,10 @@ DynamicCmsModule = _ts_decorate([
                 {
                     name: _dynamicdataschema.DynamicData.name,
                     schema: _dynamicdataschema.DynamicDataSchema
+                },
+                {
+                    name: _userschema.User.name,
+                    schema: _userschema.UserSchema
                 }
             ])
         ],
@@ -55,12 +62,15 @@ DynamicCmsModule = _ts_decorate([
             _databaseservice.DatabaseService,
             _collectionschemaservice.CollectionSchemaService,
             _dynamicdataservice.DynamicDataService,
-            _databaseownershipguard.DatabaseOwnershipGuard
+            _relationshipservice.RelationshipService,
+            _databaseownershipguard.DatabaseOwnershipGuard,
+            _tierlimitsguard.TierLimitsGuard
         ],
         exports: [
             _databaseservice.DatabaseService,
             _collectionschemaservice.CollectionSchemaService,
             _dynamicdataservice.DynamicDataService,
+            _relationshipservice.RelationshipService,
             _mongoose.MongooseModule
         ]
     })

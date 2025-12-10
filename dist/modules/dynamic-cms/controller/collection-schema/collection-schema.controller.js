@@ -16,6 +16,7 @@ const _jwtauthguard = require("../../../auth/guards/jwt-auth.guard");
 const _databaseownershipguard = require("../../../../common/guards/database-ownership.guard");
 const _databaseiddecorator = require("../../../../common/decorators/database-id.decorator");
 const _collectionschemaservice = require("./collection-schema.service");
+const _apiroutesconstants = require("../../../../common/constants/api-routes.constants");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -320,7 +321,7 @@ _ts_decorate([
 ], CollectionSchemaController.prototype, "validateData", null);
 CollectionSchemaController = _ts_decorate([
     (0, _swagger.ApiTags)('collection-schemas'),
-    (0, _common.Controller)('collection-schemas'),
+    (0, _common.Controller)(_apiroutesconstants.COLLECTION_SCHEMA_ROUTES.BASE),
     (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard, _databaseownershipguard.DatabaseOwnershipGuard),
     (0, _swagger.ApiBearerAuth)(),
     (0, _swagger.ApiHeader)({

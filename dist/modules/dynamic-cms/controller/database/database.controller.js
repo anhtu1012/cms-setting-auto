@@ -14,6 +14,8 @@ const _databaseservice = require("./database.service");
 const _databasedto = require("../../dto/database.dto");
 const _paginationdto = require("../../../../common/dto/pagination.dto");
 const _jwtauthguard = require("../../../auth/guards/jwt-auth.guard");
+const _tierlimitsguard = require("../../../../common/guards/tier-limits.guard");
+const _apiroutesconstants = require("../../../../common/constants/api-routes.constants");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -53,6 +55,7 @@ let DatabaseController = class DatabaseController {
 };
 _ts_decorate([
     (0, _common.Post)(),
+    (0, _common.UseGuards)(_tierlimitsguard.TierLimitsGuard),
     (0, _swagger.ApiOperation)({
         summary: 'Create a new database'
     }),
@@ -64,6 +67,10 @@ _ts_decorate([
     (0, _swagger.ApiResponse)({
         status: 409,
         description: 'Database name already exists'
+    }),
+    (0, _swagger.ApiResponse)({
+        status: 403,
+        description: 'Tier limit reached'
     }),
     _ts_param(0, (0, _common.Body)()),
     _ts_param(1, (0, _common.Request)()),
@@ -205,7 +212,7 @@ _ts_decorate([
 ], DatabaseController.prototype, "permanentDelete", null);
 DatabaseController = _ts_decorate([
     (0, _swagger.ApiTags)('Databases'),
-    (0, _common.Controller)('databases'),
+    (0, _common.Controller)(_apiroutesconstants.DATABASE_ROUTES.BASE),
     (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
     (0, _swagger.ApiBearerAuth)(),
     _ts_metadata("design:type", Function),
