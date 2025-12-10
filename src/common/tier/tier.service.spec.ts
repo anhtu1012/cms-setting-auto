@@ -283,6 +283,10 @@ describe('TierService', () => {
         exec: jest.fn().mockResolvedValue(mockUser),
       });
 
+      databaseModel.findOne.mockReturnValue({
+        exec: jest.fn().mockResolvedValue({ _id: databaseId, name: 'test-db' }),
+      });
+
       dynamicDataModel.aggregate.mockReturnValue({
         exec: jest.fn().mockResolvedValue([
           { _id: 'products', count: 85 },
