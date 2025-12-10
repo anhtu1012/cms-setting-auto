@@ -164,6 +164,13 @@ export class CollectionSchemaService {
     name: string,
     databaseId: string,
   ): Promise<CollectionSchemaModel | null> {
+    // Validate ObjectId format
+    if (!Types.ObjectId.isValid(databaseId)) {
+      throw new BadRequestException(
+        `Invalid databaseId format: "${databaseId}". Must be a 24 character hex string.`,
+      );
+    }
+
     return this.collectionSchemaModel
       .findOne({
         name,

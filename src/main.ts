@@ -58,8 +58,6 @@ async function bootstrap() {
     .setDescription('CMS system with MongoDB - API Documentation')
     .setVersion('1.0')
     .addTag('users', 'User management endpoints')
-    .addTag('settings', 'Settings management endpoints')
-    .addTag('content', 'Content management endpoints')
     .addBearerAuth()
     .build();
 

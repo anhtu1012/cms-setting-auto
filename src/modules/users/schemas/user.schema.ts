@@ -1,5 +1,6 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
+import { AccountTier } from '../../../common/enums/tier.enum';
 
 export type UserDocument = User & Document;
 
@@ -31,6 +32,48 @@ export class User {
 
   @Prop()
   lastLogin?: Date;
+
+  // Account Tier Information
+  @Prop({
+    type: String,
+    enum: Object.values(AccountTier),
+    default: AccountTier.FREE,
+  })
+  tier: AccountTier;
+
+  @Prop()
+  tierStartDate?: Date;
+
+  @Prop()
+  tierExpiryDate?: Date;
+
+  @Prop({
+    type: [
+      {
+        tier: String,
+        startDate: Date,
+        endDate: Date,
+        upgradeReason: String,
+      },
+    ],
+    default: [],
+  })
+  tierHistory: Array<{
+    tier: AccountTier;
+    startDate: Date;
+    endDate?: Date;
+    upgradeReason?: string;
+  }>;
+
+  // Usage Statistics (để tracking giới hạn)
+  @Prop({ default: 0 })
+  currentDatabaseCount: number;
+
+  @Prop()
+  lastApiCallReset?: Date;
+
+  @Prop({ default: 0 })
+  apiCallsToday: number;
 
   // Wallet and Points Information
   @Prop({ default: 0 })

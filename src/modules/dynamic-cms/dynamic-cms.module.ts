@@ -10,9 +10,12 @@ import { CollectionSchemaService } from './controller/collection-schema/collecti
 import { CollectionSchemaController } from './controller/collection-schema/collection-schema.controller';
 import { DynamicDataService } from './controller/dynamic-data/dynamic-data.service';
 import { DynamicDataController } from './controller/dynamic-data/dynamic-data.controller';
+import { RelationshipService } from './controller/dynamic-data/relationship.service';
 import { DatabaseService } from './controller/database/database.service';
 import { DatabaseController } from './controller/database/database.controller';
 import { DatabaseOwnershipGuard } from '../../common/guards/database-ownership.guard';
+import { TierLimitsGuard } from '../../common/guards/tier-limits.guard';
+import { User, UserSchema } from '../users/schemas/user.schema';
 
 @Module({
   imports: [
@@ -20,6 +23,7 @@ import { DatabaseOwnershipGuard } from '../../common/guards/database-ownership.g
       { name: Database.name, schema: DatabaseSchema },
       { name: CollectionSchemaModel.name, schema: CollectionSchemaSchema },
       { name: DynamicData.name, schema: DynamicDataSchema },
+      { name: User.name, schema: UserSchema },
     ]),
   ],
   controllers: [
@@ -31,12 +35,15 @@ import { DatabaseOwnershipGuard } from '../../common/guards/database-ownership.g
     DatabaseService,
     CollectionSchemaService,
     DynamicDataService,
+    RelationshipService,
     DatabaseOwnershipGuard,
+    TierLimitsGuard,
   ],
   exports: [
     DatabaseService,
     CollectionSchemaService,
     DynamicDataService,
+    RelationshipService,
     MongooseModule, // Export để guards có thể inject models
   ],
 })

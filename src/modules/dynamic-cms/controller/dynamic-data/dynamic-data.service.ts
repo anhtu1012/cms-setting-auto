@@ -15,6 +15,8 @@ import {
   PaginationDto,
   PaginationResponse,
 } from '../../../../common/dto/pagination.dto';
+import { RelationshipService } from './relationship.service';
+import { FieldType } from '../../interfaces/field-types.interface';
 
 @Injectable()
 export class DynamicDataService {
@@ -22,6 +24,7 @@ export class DynamicDataService {
     @InjectModel(DynamicData.name)
     private dynamicDataModel: Model<DynamicDataDocument>,
     private collectionSchemaService: CollectionSchemaService,
+    private relationshipService: RelationshipService,
   ) {}
 
   /**
@@ -54,6 +57,7 @@ export class DynamicDataService {
     databaseId: string,
     data: Record<string, any>,
     userId: string | null,
+    options?: { populate?: boolean; populateDepth?: number },
   ): Promise<DynamicData> {
     // Kiểm tra collection schema có tồn tại không (không check ownership)
     const schema = await this.collectionSchemaService.findByNamePublic(
@@ -80,6 +84,9 @@ export class DynamicDataService {
       });
     }
 
+    // Validate references nếu có
+    await this.validateReferencesInData(schema, databaseId, data);
+
     // Tạo document
     const document = new this.dynamicDataModel({
       _collection: collectionName,
@@ -91,7 +98,65 @@ export class DynamicDataService {
     });
 
     const saved = await document.save();
-    return this.transformDocument(saved);
+    let result = this.transformDocument(saved);
+
+    // Populate nếu được yêu cầu
+    if (options?.populate) {
+      result = await this.relationshipService.populateDocument(
+        collectionName,
+        databaseId,
+        result,
+        options.populateDepth || 1,
+      );
+    }
+
+    return result;
+  }
+
+  /**
+   * Validate tất cả references trong data
+   */
+  private async validateReferencesInData(
+    schema: any,
+    databaseId: string,
+    data: Record<string, any>,
+  ): Promise<void> {
+    const referenceFields = schema.fields.filter(
+      (field) => field.type === FieldType.REFERENCE && field.referenceConfig,
+    );
+
+    for (const field of referenceFields) {
+      const refConfig = field.referenceConfig;
+      const fieldValue = data[field.name];
+
+      if (!fieldValue) continue;
+
+      if (refConfig.multiple && Array.isArray(fieldValue)) {
+        // Validate multiple references
+        const validation = await this.relationshipService.validateReferences(
+          refConfig.collection,
+          databaseId,
+          fieldValue,
+        );
+        if (!validation.valid) {
+          throw new BadRequestException(
+            `Invalid references in field "${field.name}": ${validation.invalidIds.join(', ')}`,
+          );
+        }
+      } else if (!Array.isArray(fieldValue)) {
+        // Validate single reference
+        const isValid = await this.relationshipService.validateReference(
+          refConfig.collection,
+          databaseId,
+          fieldValue,
+        );
+        if (!isValid) {
+          throw new BadRequestException(
+            `Invalid reference in field "${field.name}": ${fieldValue}`,
+          );
+        }
+      }
+    }
   }
 
   /**
@@ -302,6 +367,7 @@ export class DynamicDataService {
     databaseId: string,
     paginationDto: PaginationDto,
     filter?: Record<string, any>,
+    options?: { populate?: boolean; populateDepth?: number },
   ): Promise<PaginationResponse<DynamicData>> {
     const { page = 1, limit = 10, search } = paginationDto;
     const skip = (page - 1) * limit;
@@ -360,8 +426,20 @@ export class DynamicDataService {
       this.dynamicDataModel.countDocuments(query).exec(),
     ]);
 
+    let transformedData = this.transformDocuments(data);
+
+    // Populate nếu được yêu cầu
+    if (options?.populate) {
+      transformedData = await this.relationshipService.populateDocuments(
+        collectionName,
+        databaseId,
+        transformedData,
+        options.populateDepth || 1,
+      );
+    }
+
     return {
-      data: this.transformDocuments(data),
+      data: transformedData,
       total,
       page,
       limit,
@@ -377,6 +455,7 @@ export class DynamicDataService {
     id: string,
     userId: string | null,
     databaseId: string,
+    options?: { populate?: boolean; populateDepth?: number },
   ): Promise<DynamicData | null> {
     const query: any = {
       _id: id,
@@ -397,7 +476,19 @@ export class DynamicDataService {
       );
     }
 
-    return this.transformDocument(document);
+    let result = this.transformDocument(document);
+
+    // Populate nếu được yêu cầu
+    if (options?.populate) {
+      result = await this.relationshipService.populateDocument(
+        collectionName,
+        databaseId,
+        result,
+        options.populateDepth || 1,
+      );
+    }
+
+    return result;
   }
 
   /**

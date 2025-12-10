@@ -17,6 +17,7 @@ _export(exports, {
     }
 });
 const _mongoose = require("@nestjs/mongoose");
+const _tierenum = require("../../../common/enums/tier.enum");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -85,6 +86,52 @@ _ts_decorate([
     (0, _mongoose.Prop)(),
     _ts_metadata("design:type", typeof Date === "undefined" ? Object : Date)
 ], User.prototype, "lastLogin", void 0);
+_ts_decorate([
+    (0, _mongoose.Prop)({
+        type: String,
+        enum: Object.values(_tierenum.AccountTier),
+        default: _tierenum.AccountTier.FREE
+    }),
+    _ts_metadata("design:type", typeof _tierenum.AccountTier === "undefined" ? Object : _tierenum.AccountTier)
+], User.prototype, "tier", void 0);
+_ts_decorate([
+    (0, _mongoose.Prop)(),
+    _ts_metadata("design:type", typeof Date === "undefined" ? Object : Date)
+], User.prototype, "tierStartDate", void 0);
+_ts_decorate([
+    (0, _mongoose.Prop)(),
+    _ts_metadata("design:type", typeof Date === "undefined" ? Object : Date)
+], User.prototype, "tierExpiryDate", void 0);
+_ts_decorate([
+    (0, _mongoose.Prop)({
+        type: [
+            {
+                tier: String,
+                startDate: Date,
+                endDate: Date,
+                upgradeReason: String
+            }
+        ],
+        default: []
+    }),
+    _ts_metadata("design:type", typeof Array === "undefined" ? Object : Array)
+], User.prototype, "tierHistory", void 0);
+_ts_decorate([
+    (0, _mongoose.Prop)({
+        default: 0
+    }),
+    _ts_metadata("design:type", Number)
+], User.prototype, "currentDatabaseCount", void 0);
+_ts_decorate([
+    (0, _mongoose.Prop)(),
+    _ts_metadata("design:type", typeof Date === "undefined" ? Object : Date)
+], User.prototype, "lastApiCallReset", void 0);
+_ts_decorate([
+    (0, _mongoose.Prop)({
+        default: 0
+    }),
+    _ts_metadata("design:type", Number)
+], User.prototype, "apiCallsToday", void 0);
 _ts_decorate([
     (0, _mongoose.Prop)({
         default: 0

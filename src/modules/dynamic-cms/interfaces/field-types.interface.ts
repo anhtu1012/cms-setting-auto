@@ -46,12 +46,30 @@ export interface SelectOption {
 }
 
 /**
+ * Loại relationship giữa các collection
+ */
+export enum RelationType {
+  ONE_TO_ONE = 'one_to_one', // 1-1: User -> Profile
+  ONE_TO_MANY = 'one_to_many', // 1-N: User -> Posts
+  MANY_TO_ONE = 'many_to_one', // N-1: Posts -> User (inverse của one_to_many)
+  MANY_TO_MANY = 'many_to_many', // N-N: Posts -> Tags
+}
+
+/**
  * Cấu hình cho field type REFERENCE
  */
 export interface ReferenceConfig {
   collection: string; // Tên collection được tham chiếu
-  displayField: string; // Field nào sẽ hiển thị
+  displayField: string; // Field nào sẽ hiển thị khi populate
   multiple?: boolean; // Có cho phép multiple references không
+  relationType?: RelationType; // Loại quan hệ
+  cascadeDelete?: boolean; // Xóa cascade khi parent bị xóa
+  inverseSide?: string; // Field name ở collection được reference (cho bidirectional)
+
+  // Populate configuration
+  autoPopulate?: boolean; // Tự động populate khi query
+  populateFields?: string[]; // Các field cần lấy từ referenced collection
+  populateDepth?: number; // Độ sâu populate (tránh circular reference)
 }
 
 /**

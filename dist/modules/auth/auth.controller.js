@@ -13,6 +13,7 @@ const _swagger = require("@nestjs/swagger");
 const _authservice = require("./auth.service");
 const _authrequestdto = require("./dto/auth-request.dto");
 const _authresponsedto = require("./dto/auth-response.dto");
+const _apiroutesconstants = require("../../common/constants/api-routes.constants");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -129,7 +130,7 @@ _ts_decorate([
 ], AuthController.prototype, "logout", null);
 AuthController = _ts_decorate([
     (0, _swagger.ApiTags)('Authentication'),
-    (0, _common.Controller)('auth'),
+    (0, _common.Controller)(_apiroutesconstants.AUTH_ROUTES.BASE),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         typeof _authservice.AuthService === "undefined" ? Object : _authservice.AuthService

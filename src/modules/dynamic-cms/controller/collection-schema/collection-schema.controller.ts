@@ -30,9 +30,10 @@ import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
 import { DatabaseOwnershipGuard } from '../../../../common/guards/database-ownership.guard';
 import { DatabaseId } from '../../../../common/decorators/database-id.decorator';
 import { CollectionSchemaService } from './collection-schema.service';
+import { COLLECTION_SCHEMA_ROUTES } from '../../../../common/constants/api-routes.constants';
 
 @ApiTags('collection-schemas')
-@Controller('collection-schemas')
+@Controller(COLLECTION_SCHEMA_ROUTES.BASE)
 @UseGuards(JwtAuthGuard, DatabaseOwnershipGuard)
 @ApiBearerAuth()
 @ApiHeader({

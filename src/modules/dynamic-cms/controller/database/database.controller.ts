@@ -27,15 +27,18 @@ import {
 } from '../../dto/database.dto';
 import { PaginationDto } from '../../../../common/dto/pagination.dto';
 import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { TierLimitsGuard } from '../../../../common/guards/tier-limits.guard';
+import { DATABASE_ROUTES } from '../../../../common/constants/api-routes.constants';
 
 @ApiTags('Databases')
-@Controller('databases')
+@Controller(DATABASE_ROUTES.BASE)
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class DatabaseController {
   constructor(private readonly databaseService: DatabaseService) {}
 
   @Post()
+  @UseGuards(TierLimitsGuard)
   @ApiOperation({ summary: 'Create a new database' })
   @ApiResponse({
     status: 201,
@@ -43,6 +46,7 @@ export class DatabaseController {
     type: DatabaseResponseDto,
   })
   @ApiResponse({ status: 409, description: 'Database name already exists' })
+  @ApiResponse({ status: 403, description: 'Tier limit reached' })
   async create(
     @Body() createDatabaseDto: CreateDatabaseDto,
     @Request() req,

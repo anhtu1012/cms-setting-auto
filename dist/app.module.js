@@ -15,9 +15,8 @@ const _appcontroller = require("./app.controller");
 const _appservice = require("./app.service");
 const _authmodule = require("./modules/auth/auth.module");
 const _usersmodule = require("./modules/users/users.module");
-const _settingsmodule = require("./modules/settings/settings.module");
-const _contentmodule = require("./modules/content/content.module");
 const _dynamiccmsmodule = require("./modules/dynamic-cms/dynamic-cms.module");
+const _tiermodule = require("./common/tier/tier.module");
 const _databaseconfig = /*#__PURE__*/ _interop_require_default(require("./config/database.config"));
 function _interop_require_default(obj) {
     return obj && obj.__esModule ? obj : {
@@ -45,8 +44,7 @@ AppModule = _ts_decorate([
             _mongoose.MongooseModule.forRoot(process.env.MONGODB_URI || 'mongodb://localhost:27017/cms-setting-auto'),
             _authmodule.AuthModule,
             _usersmodule.UsersModule,
-            _settingsmodule.SettingsModule,
-            _contentmodule.ContentModule,
+            _tiermodule.TierModule,
             _dynamiccmsmodule.DynamicCmsModule
         ],
         controllers: [

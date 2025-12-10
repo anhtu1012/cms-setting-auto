@@ -5,9 +5,8 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { AuthModule } from './modules/auth/auth.module';
 import { UsersModule } from './modules/users/users.module';
-import { SettingsModule } from './modules/settings/settings.module';
-import { ContentModule } from './modules/content/content.module';
 import { DynamicCmsModule } from './modules/dynamic-cms/dynamic-cms.module';
+import { TierModule } from './common/tier/tier.module';
 import databaseConfig from './config/database.config';
 
 @Module({
@@ -22,9 +21,8 @@ import databaseConfig from './config/database.config';
     ),
     AuthModule,
     UsersModule,
-    SettingsModule,
-    ContentModule,
-    DynamicCmsModule,
+    TierModule,
+    DynamicCmsModule, //Luôn luôn đặt cuối cùng để tránh lỗi phụ thuộc
   ],
   controllers: [AppController],
   providers: [AppService],

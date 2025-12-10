@@ -13,6 +13,8 @@ const _mongoose = require("@nestjs/mongoose");
 const _mongoose1 = require("mongoose");
 const _dynamicdataschema = require("../../schemas/dynamic-data.schema");
 const _collectionschemaservice = require("../collection-schema/collection-schema.service");
+const _relationshipservice = require("./relationship.service");
+const _fieldtypesinterface = require("../../interfaces/field-types.interface");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -46,7 +48,7 @@ let DynamicDataService = class DynamicDataService {
     }
     /**
    * Tạo document mới trong collection động
-   */ async create(collectionName, databaseId, data, userId) {
+   */ async create(collectionName, databaseId, data, userId, options) {
         // Kiểm tra collection schema có tồn tại không (không check ownership)
         const schema = await this.collectionSchemaService.findByNamePublic(collectionName, databaseId);
         if (!schema) {
@@ -60,6 +62,8 @@ let DynamicDataService = class DynamicDataService {
                 errors: validation.errors
             });
         }
+        // Validate references nếu có
+        await this.validateReferencesInData(schema, databaseId, data);
         // Tạo document
         const document = new this.dynamicDataModel({
             _collection: collectionName,
@@ -70,7 +74,35 @@ let DynamicDataService = class DynamicDataService {
             updatedBy: userId
         });
         const saved = await document.save();
-        return this.transformDocument(saved);
+        let result = this.transformDocument(saved);
+        // Populate nếu được yêu cầu
+        if (options?.populate) {
+            result = await this.relationshipService.populateDocument(collectionName, databaseId, result, options.populateDepth || 1);
+        }
+        return result;
+    }
+    /**
+   * Validate tất cả references trong data
+   */ async validateReferencesInData(schema, databaseId, data) {
+        const referenceFields = schema.fields.filter((field)=>field.type === _fieldtypesinterface.FieldType.REFERENCE && field.referenceConfig);
+        for (const field of referenceFields){
+            const refConfig = field.referenceConfig;
+            const fieldValue = data[field.name];
+            if (!fieldValue) continue;
+            if (refConfig.multiple && Array.isArray(fieldValue)) {
+                // Validate multiple references
+                const validation = await this.relationshipService.validateReferences(refConfig.collection, databaseId, fieldValue);
+                if (!validation.valid) {
+                    throw new _common.BadRequestException(`Invalid references in field "${field.name}": ${validation.invalidIds.join(', ')}`);
+                }
+            } else if (!Array.isArray(fieldValue)) {
+                // Validate single reference
+                const isValid = await this.relationshipService.validateReference(refConfig.collection, databaseId, fieldValue);
+                if (!isValid) {
+                    throw new _common.BadRequestException(`Invalid reference in field "${field.name}": ${fieldValue}`);
+                }
+            }
+        }
     }
     /**
    * Tạo nhiều documents cùng lúc (bulk create)
@@ -201,7 +233,7 @@ let DynamicDataService = class DynamicDataService {
     }
     /**
    * Lấy danh sách documents trong collection của user
-   */ async findAll(collectionName, userId, databaseId, paginationDto, filter) {
+   */ async findAll(collectionName, userId, databaseId, paginationDto, filter, options) {
         const { page = 1, limit = 10, search } = paginationDto;
         const skip = (page - 1) * limit;
         // Kiểm tra collection schema (không check ownership)
@@ -243,8 +275,13 @@ let DynamicDataService = class DynamicDataService {
             }).exec(),
             this.dynamicDataModel.countDocuments(query).exec()
         ]);
+        let transformedData = this.transformDocuments(data);
+        // Populate nếu được yêu cầu
+        if (options?.populate) {
+            transformedData = await this.relationshipService.populateDocuments(collectionName, databaseId, transformedData, options.populateDepth || 1);
+        }
         return {
-            data: this.transformDocuments(data),
+            data: transformedData,
             total,
             page,
             limit,
@@ -253,7 +290,7 @@ let DynamicDataService = class DynamicDataService {
     }
     /**
    * Lấy document theo ID và kiểm tra ownership
-   */ async findById(collectionName, id, userId, databaseId) {
+   */ async findById(collectionName, id, userId, databaseId, options) {
         const query = {
             _id: id,
             _collection: collectionName,
@@ -267,7 +304,12 @@ let DynamicDataService = class DynamicDataService {
         if (!document) {
             throw new _common.NotFoundException(`Document not found in collection "${collectionName}"`);
         }
-        return this.transformDocument(document);
+        let result = this.transformDocument(document);
+        // Populate nếu được yêu cầu
+        if (options?.populate) {
+            result = await this.relationshipService.populateDocument(collectionName, databaseId, result, options.populateDepth || 1);
+        }
+        return result;
     }
     /**
    * Cập nhật document
@@ -434,9 +476,10 @@ let DynamicDataService = class DynamicDataService {
         }
         return this.dynamicDataModel.countDocuments(query).exec();
     }
-    constructor(dynamicDataModel, collectionSchemaService){
+    constructor(dynamicDataModel, collectionSchemaService, relationshipService){
         this.dynamicDataModel = dynamicDataModel;
         this.collectionSchemaService = collectionSchemaService;
+        this.relationshipService = relationshipService;
     }
 };
 DynamicDataService = _ts_decorate([
@@ -445,7 +488,8 @@ DynamicDataService = _ts_decorate([
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         typeof _mongoose1.Model === "undefined" ? Object : _mongoose1.Model,
-        typeof _collectionschemaservice.CollectionSchemaService === "undefined" ? Object : _collectionschemaservice.CollectionSchemaService
+        typeof _collectionschemaservice.CollectionSchemaService === "undefined" ? Object : _collectionschemaservice.CollectionSchemaService,
+        typeof _relationshipservice.RelationshipService === "undefined" ? Object : _relationshipservice.RelationshipService
     ])
 ], DynamicDataService);
 

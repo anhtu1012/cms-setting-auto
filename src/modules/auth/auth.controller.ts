@@ -11,9 +11,10 @@ import {
   RegisterResponseDto,
   RefreshTokenResponseDto,
 } from './dto/auth-response.dto';
+import { AUTH_ROUTES } from '../../common/constants/api-routes.constants';
 
 @ApiTags('Authentication')
-@Controller('auth')
+@Controller(AUTH_ROUTES.BASE)
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 

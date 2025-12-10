@@ -147,6 +147,67 @@ _ts_decorate([
     (0, _classvalidator.IsBoolean)(),
     _ts_metadata("design:type", Boolean)
 ], ReferenceConfigDto.prototype, "multiple", void 0);
+_ts_decorate([
+    (0, _swagger.ApiPropertyOptional)({
+        enum: _fieldtypesinterface.RelationType,
+        description: 'Type of relationship',
+        example: _fieldtypesinterface.RelationType.ONE_TO_MANY
+    }),
+    (0, _classvalidator.IsOptional)(),
+    (0, _classvalidator.IsEnum)(_fieldtypesinterface.RelationType),
+    _ts_metadata("design:type", typeof _fieldtypesinterface.RelationType === "undefined" ? Object : _fieldtypesinterface.RelationType)
+], ReferenceConfigDto.prototype, "relationType", void 0);
+_ts_decorate([
+    (0, _swagger.ApiPropertyOptional)({
+        description: 'Cascade delete when parent is deleted',
+        default: false
+    }),
+    (0, _classvalidator.IsOptional)(),
+    (0, _classvalidator.IsBoolean)(),
+    _ts_metadata("design:type", Boolean)
+], ReferenceConfigDto.prototype, "cascadeDelete", void 0);
+_ts_decorate([
+    (0, _swagger.ApiPropertyOptional)({
+        description: 'Field name in the referenced collection for bidirectional relationship',
+        example: 'userId'
+    }),
+    (0, _classvalidator.IsOptional)(),
+    (0, _classvalidator.IsString)(),
+    _ts_metadata("design:type", String)
+], ReferenceConfigDto.prototype, "inverseSide", void 0);
+_ts_decorate([
+    (0, _swagger.ApiPropertyOptional)({
+        description: 'Automatically populate this reference when querying',
+        default: false
+    }),
+    (0, _classvalidator.IsOptional)(),
+    (0, _classvalidator.IsBoolean)(),
+    _ts_metadata("design:type", Boolean)
+], ReferenceConfigDto.prototype, "autoPopulate", void 0);
+_ts_decorate([
+    (0, _swagger.ApiPropertyOptional)({
+        description: 'Fields to populate from referenced collection',
+        type: [
+            String
+        ],
+        example: [
+            'name',
+            'email'
+        ]
+    }),
+    (0, _classvalidator.IsOptional)(),
+    (0, _classvalidator.IsArray)(),
+    _ts_metadata("design:type", Array)
+], ReferenceConfigDto.prototype, "populateFields", void 0);
+_ts_decorate([
+    (0, _swagger.ApiPropertyOptional)({
+        description: 'Maximum depth for nested population',
+        default: 1
+    }),
+    (0, _classvalidator.IsOptional)(),
+    (0, _classvalidator.IsNumber)(),
+    _ts_metadata("design:type", Number)
+], ReferenceConfigDto.prototype, "populateDepth", void 0);
 let FieldDefinitionDto = class FieldDefinitionDto {
 };
 _ts_decorate([

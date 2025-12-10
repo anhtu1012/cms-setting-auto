@@ -46,7 +46,7 @@ async function bootstrap() {
         console.log(`✅ CORS: allowed origins: ${allowedOrigins.join(', ')}`);
     }
     // Swagger configuration
-    const config = new _swagger.DocumentBuilder().setTitle('CMS Setting Auto API').setDescription('CMS system with MongoDB - API Documentation').setVersion('1.0').addTag('users', 'User management endpoints').addTag('settings', 'Settings management endpoints').addTag('content', 'Content management endpoints').addBearerAuth().build();
+    const config = new _swagger.DocumentBuilder().setTitle('CMS Setting Auto API').setDescription('CMS system with MongoDB - API Documentation').setVersion('1.0').addTag('users', 'User management endpoints').addBearerAuth().build();
     const document = _swagger.SwaggerModule.createDocument(app, config);
     _swagger.SwaggerModule.setup('api', app, document);
     await app.listen(process.env.PORT ?? 3000);

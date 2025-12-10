@@ -12,6 +12,10 @@ const _common = require("@nestjs/common");
 const _swagger = require("@nestjs/swagger");
 const _paginationdto = require("../../../../common/dto/pagination.dto");
 const _dynamicdataservice = require("./dynamic-data.service");
+const _jwtauthguard = require("../../../auth/guards/jwt-auth.guard");
+const _tierlimitsguard = require("../../../../common/guards/tier-limits.guard");
+const _objectidvalidationpipe = require("../../../../common/pipes/objectid-validation.pipe");
+const _apiroutesconstants = require("../../../../common/constants/api-routes.constants");
 function _ts_decorate(decorators, target, key, desc) {
     var c = arguments.length, r = c < 3 ? target : desc === null ? desc = Object.getOwnPropertyDescriptor(target, key) : desc, d;
     if (typeof Reflect === "object" && typeof Reflect.decorate === "function") r = Reflect.decorate(decorators, target, key, desc);
@@ -45,9 +49,12 @@ let DynamicDataController = class DynamicDataController {
         }
         return this.dynamicDataService.replaceAll(collectionName, databaseId, dataArray, userId);
     }
-    findAll(databaseId, collectionName, paginationDto, req) {
+    findAll(databaseId, collectionName, paginationDto, populate, populateDepth, req) {
         const userId = req?.user?.userId || null;
-        return this.dynamicDataService.findAll(collectionName, userId, databaseId, paginationDto);
+        return this.dynamicDataService.findAll(collectionName, userId, databaseId, paginationDto, undefined, {
+            populate,
+            populateDepth
+        });
     }
     query(databaseId, collectionName, body) {
         return this.dynamicDataService.query(collectionName, body.filter, {
@@ -59,9 +66,12 @@ let DynamicDataController = class DynamicDataController {
     count(databaseId, collectionName) {
         return this.dynamicDataService.count(collectionName);
     }
-    findOne(databaseId, collectionName, id, req) {
+    findOne(databaseId, collectionName, id, populate, populateDepth, req) {
         const userId = req?.user?.userId || null;
-        return this.dynamicDataService.findById(collectionName, id, userId, databaseId);
+        return this.dynamicDataService.findById(collectionName, id, userId, databaseId, {
+            populate,
+            populateDepth
+        });
     }
     update(databaseId, collectionName, id, data, req) {
         const userId = req?.user?.userId || null;
@@ -89,6 +99,7 @@ let DynamicDataController = class DynamicDataController {
 };
 _ts_decorate([
     (0, _common.Post)(),
+    (0, _common.UseGuards)(_tierlimitsguard.TierLimitsGuard),
     (0, _swagger.ApiOperation)({
         summary: 'Create new document in dynamic collection'
     }),
@@ -130,6 +141,10 @@ _ts_decorate([
         status: 404,
         description: 'Collection schema not found'
     }),
+    (0, _swagger.ApiResponse)({
+        status: 403,
+        description: 'Tier limit reached'
+    }),
     _ts_param(0, (0, _common.Param)('databaseId')),
     _ts_param(1, (0, _common.Param)('collectionName')),
     _ts_param(2, (0, _common.Body)()),
@@ -144,7 +159,8 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "create", null);
 _ts_decorate([
-    (0, _common.Post)('bulk'),
+    (0, _common.Post)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.BULK),
+    (0, _common.UseGuards)(_tierlimitsguard.TierLimitsGuard),
     (0, _swagger.ApiOperation)({
         summary: 'Create multiple documents in dynamic collection'
     }),
@@ -203,6 +219,10 @@ _ts_decorate([
         status: 404,
         description: 'Collection schema not found'
     }),
+    (0, _swagger.ApiResponse)({
+        status: 403,
+        description: 'Tier limit reached'
+    }),
     _ts_param(0, (0, _common.Param)('databaseId')),
     _ts_param(1, (0, _common.Param)('collectionName')),
     _ts_param(2, (0, _common.Body)()),
@@ -217,7 +237,8 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "createMany", null);
 _ts_decorate([
-    (0, _common.Put)('replace-all'),
+    (0, _common.Put)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.REPLACE_ALL),
+    (0, _common.UseGuards)(_tierlimitsguard.TierLimitsGuard),
     (0, _swagger.ApiOperation)({
         summary: 'Replace all documents in collection with new data array'
     }),
@@ -266,6 +287,10 @@ _ts_decorate([
         status: 404,
         description: 'Collection schema not found'
     }),
+    (0, _swagger.ApiResponse)({
+        status: 403,
+        description: 'Tier limit reached'
+    }),
     _ts_param(0, (0, _common.Param)('databaseId')),
     _ts_param(1, (0, _common.Param)('collectionName')),
     _ts_param(2, (0, _common.Body)()),
@@ -309,6 +334,18 @@ _ts_decorate([
         required: false,
         type: String
     }),
+    (0, _swagger.ApiQuery)({
+        name: 'populate',
+        required: false,
+        type: Boolean,
+        description: 'Auto-populate reference fields'
+    }),
+    (0, _swagger.ApiQuery)({
+        name: 'populateDepth',
+        required: false,
+        type: Number,
+        description: 'Depth of nested population (default: 1)'
+    }),
     (0, _swagger.ApiResponse)({
         status: 200,
         description: 'Documents retrieved'
@@ -316,18 +353,22 @@ _ts_decorate([
     _ts_param(0, (0, _common.Param)('databaseId')),
     _ts_param(1, (0, _common.Param)('collectionName')),
     _ts_param(2, (0, _common.Query)()),
-    _ts_param(3, (0, _common.Request)()),
+    _ts_param(3, (0, _common.Query)('populate')),
+    _ts_param(4, (0, _common.Query)('populateDepth')),
+    _ts_param(5, (0, _common.Request)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         String,
         String,
         typeof _paginationdto.PaginationDto === "undefined" ? Object : _paginationdto.PaginationDto,
+        Boolean,
+        Number,
         void 0
     ]),
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "findAll", null);
 _ts_decorate([
-    (0, _common.Post)('query'),
+    (0, _common.Post)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.QUERY),
     (0, _swagger.ApiOperation)({
         summary: 'Query documents with custom filter'
     }),
@@ -385,7 +426,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "query", null);
 _ts_decorate([
-    (0, _common.Get)('count'),
+    (0, _common.Get)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.COUNT),
     (0, _swagger.ApiOperation)({
         summary: 'Count documents in collection'
     }),
@@ -411,7 +452,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "count", null);
 _ts_decorate([
-    (0, _common.Get)(':id'),
+    (0, _common.Get)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.BY_ID),
     (0, _swagger.ApiOperation)({
         summary: 'Get document by ID'
     }),
@@ -427,6 +468,18 @@ _ts_decorate([
         name: 'id',
         example: '507f1f77bcf86cd799439011'
     }),
+    (0, _swagger.ApiQuery)({
+        name: 'populate',
+        required: false,
+        type: Boolean,
+        description: 'Auto-populate reference fields'
+    }),
+    (0, _swagger.ApiQuery)({
+        name: 'populateDepth',
+        required: false,
+        type: Number,
+        description: 'Depth of nested population (default: 1)'
+    }),
     (0, _swagger.ApiResponse)({
         status: 200,
         description: 'Document found'
@@ -438,18 +491,22 @@ _ts_decorate([
     _ts_param(0, (0, _common.Param)('databaseId')),
     _ts_param(1, (0, _common.Param)('collectionName')),
     _ts_param(2, (0, _common.Param)('id')),
-    _ts_param(3, (0, _common.Request)()),
+    _ts_param(3, (0, _common.Query)('populate')),
+    _ts_param(4, (0, _common.Query)('populateDepth')),
+    _ts_param(5, (0, _common.Request)()),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         String,
         String,
         String,
+        Boolean,
+        Number,
         void 0
     ]),
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "findOne", null);
 _ts_decorate([
-    (0, _common.Patch)(':id'),
+    (0, _common.Patch)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.BY_ID),
     (0, _swagger.ApiOperation)({
         summary: 'Update document by ID'
     }),
@@ -503,7 +560,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "update", null);
 _ts_decorate([
-    (0, _common.Put)(':id'),
+    (0, _common.Put)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.BY_ID),
     (0, _swagger.ApiOperation)({
         summary: 'Replace document by ID (full replacement)'
     }),
@@ -566,7 +623,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "replace", null);
 _ts_decorate([
-    (0, _common.Delete)(':id'),
+    (0, _common.Delete)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.BY_ID),
     (0, _swagger.ApiOperation)({
         summary: 'Soft delete document by ID'
     }),
@@ -604,7 +661,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "softDelete", null);
 _ts_decorate([
-    (0, _common.Delete)(':id/hard'),
+    (0, _common.Delete)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.HARD_DELETE),
     (0, _swagger.ApiOperation)({
         summary: 'Permanently delete document by ID'
     }),
@@ -642,7 +699,7 @@ _ts_decorate([
     _ts_metadata("design:returntype", void 0)
 ], DynamicDataController.prototype, "hardDelete", null);
 _ts_decorate([
-    (0, _common.Post)(':id/restore'),
+    (0, _common.Post)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.RESTORE),
     (0, _swagger.ApiOperation)({
         summary: 'Restore soft-deleted document'
     }),
@@ -681,7 +738,10 @@ _ts_decorate([
 ], DynamicDataController.prototype, "restore", null);
 DynamicDataController = _ts_decorate([
     (0, _swagger.ApiTags)('dynamic-data'),
-    (0, _common.Controller)(':databaseId/:collectionName'),
+    (0, _common.Controller)(_apiroutesconstants.DYNAMIC_DATA_ROUTES.BASE),
+    (0, _common.UseGuards)(_jwtauthguard.JwtAuthGuard),
+    (0, _common.UsePipes)(_objectidvalidationpipe.ObjectIdValidationPipe),
+    (0, _swagger.ApiBearerAuth)(),
     _ts_metadata("design:type", Function),
     _ts_metadata("design:paramtypes", [
         typeof _dynamicdataservice.DynamicDataService === "undefined" ? Object : _dynamicdataservice.DynamicDataService

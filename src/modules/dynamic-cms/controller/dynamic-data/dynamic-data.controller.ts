@@ -10,6 +10,8 @@ import {
   Query,
   Request,
   BadRequestException,
+  UseGuards,
+  UsePipes,
 } from '@nestjs/common';
 import {
   ApiTags,
@@ -18,16 +20,28 @@ import {
   ApiQuery,
   ApiParam,
   ApiBody,
+  ApiBearerAuth,
 } from '@nestjs/swagger';
 import { PaginationDto } from '../../../../common/dto/pagination.dto';
 import { DynamicDataService } from './dynamic-data.service';
+import { JwtAuthGuard } from '../../../auth/guards/jwt-auth.guard';
+import { TierLimitsGuard } from '../../../../common/guards/tier-limits.guard';
+import { ObjectIdValidationPipe } from '../../../../common/pipes/objectid-validation.pipe';
+import {
+  DYNAMIC_DATA_ROUTES,
+  API_VERSION,
+} from '../../../../common/constants/api-routes.constants';
 
 @ApiTags('dynamic-data')
-@Controller(':databaseId/:collectionName')
+@Controller(DYNAMIC_DATA_ROUTES.BASE)
+@UseGuards(JwtAuthGuard)
+@UsePipes(ObjectIdValidationPipe)
+@ApiBearerAuth()
 export class DynamicDataController {
   constructor(private readonly dynamicDataService: DynamicDataService) {}
 
   @Post()
+  @UseGuards(TierLimitsGuard)
   @ApiOperation({ summary: 'Create new document in dynamic collection' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -49,6 +63,7 @@ export class DynamicDataController {
   @ApiResponse({ status: 201, description: 'Document created successfully' })
   @ApiResponse({ status: 400, description: 'Validation failed' })
   @ApiResponse({ status: 404, description: 'Collection schema not found' })
+  @ApiResponse({ status: 403, description: 'Tier limit reached' })
   create(
     @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
@@ -64,7 +79,8 @@ export class DynamicDataController {
     );
   }
 
-  @Post('bulk')
+  @Post(DYNAMIC_DATA_ROUTES.BULK)
+  @UseGuards(TierLimitsGuard)
   @ApiOperation({ summary: 'Create multiple documents in dynamic collection' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -103,6 +119,7 @@ export class DynamicDataController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   @ApiResponse({ status: 404, description: 'Collection schema not found' })
+  @ApiResponse({ status: 403, description: 'Tier limit reached' })
   createMany(
     @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
@@ -123,7 +140,8 @@ export class DynamicDataController {
     );
   }
 
-  @Put('replace-all')
+  @Put(DYNAMIC_DATA_ROUTES.REPLACE_ALL)
+  @UseGuards(TierLimitsGuard)
   @ApiOperation({
     summary: 'Replace all documents in collection with new data array',
   })
@@ -162,6 +180,7 @@ export class DynamicDataController {
   })
   @ApiResponse({ status: 400, description: 'Invalid input' })
   @ApiResponse({ status: 404, description: 'Collection schema not found' })
+  @ApiResponse({ status: 403, description: 'Tier limit reached' })
   replaceAll(
     @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
@@ -189,12 +208,26 @@ export class DynamicDataController {
   @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
   @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   @ApiQuery({ name: 'search', required: false, type: String })
+  @ApiQuery({
+    name: 'populate',
+    required: false,
+    type: Boolean,
+    description: 'Auto-populate reference fields',
+  })
+  @ApiQuery({
+    name: 'populateDepth',
+    required: false,
+    type: Number,
+    description: 'Depth of nested population (default: 1)',
+  })
   @ApiResponse({ status: 200, description: 'Documents retrieved' })
   findAll(
     @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Query() paginationDto: PaginationDto,
-    @Request() req,
+    @Query('populate') populate?: boolean,
+    @Query('populateDepth') populateDepth?: number,
+    @Request() req?,
   ) {
     const userId = req?.user?.userId || null;
     return this.dynamicDataService.findAll(
@@ -202,10 +235,12 @@ export class DynamicDataController {
       userId,
       databaseId,
       paginationDto,
+      undefined,
+      { populate, populateDepth },
     );
   }
 
-  @Post('query')
+  @Post(DYNAMIC_DATA_ROUTES.QUERY)
   @ApiOperation({ summary: 'Query documents with custom filter' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -246,7 +281,7 @@ export class DynamicDataController {
     });
   }
 
-  @Get('count')
+  @Get(DYNAMIC_DATA_ROUTES.COUNT)
   @ApiOperation({ summary: 'Count documents in collection' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -258,18 +293,32 @@ export class DynamicDataController {
     return this.dynamicDataService.count(collectionName);
   }
 
-  @Get(':id')
+  @Get(DYNAMIC_DATA_ROUTES.BY_ID)
   @ApiOperation({ summary: 'Get document by ID' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
   @ApiParam({ name: 'id', example: '507f1f77bcf86cd799439011' })
+  @ApiQuery({
+    name: 'populate',
+    required: false,
+    type: Boolean,
+    description: 'Auto-populate reference fields',
+  })
+  @ApiQuery({
+    name: 'populateDepth',
+    required: false,
+    type: Number,
+    description: 'Depth of nested population (default: 1)',
+  })
   @ApiResponse({ status: 200, description: 'Document found' })
   @ApiResponse({ status: 404, description: 'Document not found' })
   findOne(
     @Param('databaseId') databaseId: string,
     @Param('collectionName') collectionName: string,
     @Param('id') id: string,
-    @Request() req,
+    @Query('populate') populate?: boolean,
+    @Query('populateDepth') populateDepth?: number,
+    @Request() req?,
   ) {
     const userId = req?.user?.userId || null;
     return this.dynamicDataService.findById(
@@ -277,10 +326,11 @@ export class DynamicDataController {
       id,
       userId,
       databaseId,
+      { populate, populateDepth },
     );
   }
 
-  @Patch(':id')
+  @Patch(DYNAMIC_DATA_ROUTES.BY_ID)
   @ApiOperation({ summary: 'Update document by ID' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -315,7 +365,7 @@ export class DynamicDataController {
     );
   }
 
-  @Put(':id')
+  @Put(DYNAMIC_DATA_ROUTES.BY_ID)
   @ApiOperation({ summary: 'Replace document by ID (full replacement)' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -355,7 +405,7 @@ export class DynamicDataController {
     );
   }
 
-  @Delete(':id')
+  @Delete(DYNAMIC_DATA_ROUTES.BY_ID)
   @ApiOperation({ summary: 'Soft delete document by ID' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -377,7 +427,7 @@ export class DynamicDataController {
     );
   }
 
-  @Delete(':id/hard')
+  @Delete(DYNAMIC_DATA_ROUTES.HARD_DELETE)
   @ApiOperation({ summary: 'Permanently delete document by ID' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
@@ -399,7 +449,7 @@ export class DynamicDataController {
     );
   }
 
-  @Post(':id/restore')
+  @Post(DYNAMIC_DATA_ROUTES.RESTORE)
   @ApiOperation({ summary: 'Restore soft-deleted document' })
   @ApiParam({ name: 'databaseId', example: '507f1f77bcf86cd799439011' })
   @ApiParam({ name: 'collectionName', example: 'products' })
